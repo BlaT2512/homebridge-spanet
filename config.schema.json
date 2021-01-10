@@ -1,16 +1,84 @@
 {
-  "pluginAlias": "ExampleHomebridgePlugin",
+  "pluginAlias": "SpaNETPlugin",
   "pluginType": "platform",
   "singular": true,
+  "customUi": true,
+  "footerDisplay": "For support visit [GitHub repository](https://github.com/BlaT2512/homebridge-spanet)",
   "schema": {
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Name",
-        "type": "string",
+      "options": {
+        "title": "",
+        "type": "object",
         "required": true,
-        "default": "Example Dynamic Platform"
+        "properties": {
+          "username": {
+            "title": "Username",
+            "type": "string",
+            "required": true,
+            "description": "Username which you use to log into the SpaLINK app"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string",
+            "required": true,
+            "description": "IMPORTANT NOTE: This is not your regular password into the SpaNET app, see [GitHub repository](https://github.com/BlaT2512/homebridge-spanet) to learn how to obtain your encrypted password"
+          },
+          "spaName": {
+            "title": "Spa Name",
+            "type": "string",
+            "required": true,
+            "description": "Name of the spa as seen in the SpaLINK app"
+          },
+          "lightMode": {
+            "title": "Light Mode",
+            "type": "integer",
+            "default": 0,
+            "oneOf": [
+              { "title": "White", "enum": [0] },
+              { "title": "Colour", "enum": [1] },
+              { "title": "Fade", "enum": [2] },
+              { "title": "Step", "enum": [3] },
+              { "title": "Party", "enum": [4] }
+            ],
+            "required": true,
+            "description": "Default light mode when turning on with light accessory"
+          },
+          "lightBrightness": {
+            "title": "Light Brightness",
+            "type": "integer",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 5,
+            "required": true,
+            "description": "Default light brightness when turning on with light accessory"
+          }
+        }
       }
     }
-  }
+  },
+  "layout": [
+    {
+      "type": "flex",
+      "flex-flow": "row wrap",
+      "items": [
+        "options.username",
+        {
+          "key": "options.password",
+          "type": "password"
+        }
+      ]
+    },
+    "options.spaName",
+    {
+      "type": "fieldset",
+      "title": "Lights",
+      "expandable": false,
+      "expanded": true,
+      "items": [
+        "options.lightMode",
+        "options.lightBrightness"
+      ]
+    }
+  ]
 }
