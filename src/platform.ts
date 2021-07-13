@@ -118,12 +118,12 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     client.destroy();
 
                   }
+                  
+                }
 
-                  if (spaFound === false){
-                    // eslint-disable-next-line max-len
-                    this.log.error('Error: The specified spa does not exist for the SpaLINK account. Please log in with a different account or click on the setting button below the homebridge-spanet module to change it.');
-                  }
-
+                if (spaFound === false){
+                  // eslint-disable-next-line max-len
+                  this.log.error('Error: The specified spa does not exist for the SpaLINK account. Please log in with a different account or click on the setting button below the homebridge-spanet module to change it.');
                 }
 
               } else {
