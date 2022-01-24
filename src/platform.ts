@@ -85,6 +85,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
               if (bodyJSON['sockets'][0] !== undefined){
 
                 global; let spaFound = false;
+                this.log.info(body);
                 for(const result of bodyJSON['sockets']){
                 
                   // Check whether the name matches the spa name specified by the user
