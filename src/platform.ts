@@ -85,7 +85,6 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
               if (bodyJSON['sockets'][0] !== undefined){
 
                 global; let spaFound = false;
-                this.log.info(body);
                 for(const result of bodyJSON['sockets']){
                 
                   // Check whether the name matches the spa name specified by the user
@@ -94,6 +93,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     // This is the correct spa that the user has chosen, test a connection to it's websocket
                     spaFound = true;
                     const spaIP = result['spaurl'].slice(0, -5);
+                    this.log.info('Attempting to connect to... ' + result['name']);
                     const client = new net.Socket();
                     try {
                       client.connect(9090, spaIP, () => {
