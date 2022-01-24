@@ -54,6 +54,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       const loginParams = {
         uri: 'https://api.spanet.net.au/api/MemberLogin',
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         json: {
           'login': this.config.username,
           'api_key': '4a483b9a-8f02-4e46-8bfa-0cf5732dbbd5',
@@ -74,7 +77,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           };
 
           request(spaParams, (error, response, body) => {
-            if (!error && response.statusCode === 200 && JSON.parse(body['success'])) {
+            if (!error && response.statusCode === 200 && JSON.parse(body)['success']) {
               
               // Parse through the list of spa sockets and check that the spa specified in settings exists
               const bodyJSON = JSON.parse(body);
