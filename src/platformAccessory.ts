@@ -1,13 +1,11 @@
 /* eslint-disable max-len */
 import net = require('net');
-
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { SpaNETHomebridgePlatform } from './platform';
 
 ////////////////////////
 // PLATFORM ACCESSORY //
 ////////////////////////
-
 export class SpaNETPlatformAccessory {
   private service: Service;
 
@@ -20,7 +18,7 @@ export class SpaNETPlatformAccessory {
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
       .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Blake Tourneur')
       .setCharacteristic(this.platform.Characteristic.Model, accessory.context.device.deviceId)
-      .setCharacteristic(this.platform.Characteristic.SerialNumber, '0');
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.deviceId);
 
     // Create the service for this accessory
     switch(accessory.context.deviceClass) {

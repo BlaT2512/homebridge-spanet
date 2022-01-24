@@ -1,8 +1,7 @@
+/* eslint-disable max-len */
 import request = require('request');
 import net = require('net');
-
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
-
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SpaNETPlatformAccessory } from './platformAccessory';
 
@@ -13,7 +12,6 @@ declare global {
 /////////////////////////
 // HOMEBRIDGE PLATFORM //
 /////////////////////////
-
 export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
@@ -50,7 +48,6 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   registerDevices() {
 
     // Parse through user config and check that the user and selected spa are valid
-    let spaSuccess = false;
     if (this.config.username !== '' && this.config.password !== '' && this.config.spaName !== '') {
 
       // First, login to API with their username and encrypted password key to see if the user exists, otherwise cancel registration
@@ -103,17 +100,156 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
                           // Everything has succeeded, return success and set global variables for required spa details
                           globalSpaVars = [result['name'], spaIP, result['id_sockets'], result['id_member']];
-                          spaSuccess = true;
+
+                          // Register/deregister each device for components of spa
+                          const spaDevices = [
+                            {
+                              deviceId: 'spanet.thermostat.heaterpump',
+                              displayName: 'Heater',
+                              deviceClass: 'Thermostat',
+                            },
+                            {
+                              deviceId: 'spanet.pump.pump2',
+                              displayName: 'Jet 1',
+                              deviceClass: 'ToggleSwitch',
+                              command: 'S23:',
+                              readBit: 7,
+                              readLine: 4,
+                              readOff: 0,
+                            },
+                            {
+                              deviceId: 'spanet.pump.pump3',
+                              displayName: 'Jet 2',
+                              deviceClass: 'ToggleSwitch',
+                              command: 'S24:',
+                              readBit: 9,
+                              readLine: 4,
+                              readOff: 0,
+                            },
+                            {
+                              deviceId: 'spanet.pump.blower',
+                              displayName: 'Blower',
+                              deviceClass: 'Blower',
+                            },
+                            {
+                              deviceId: 'spanet.light.lights',
+                              displayName: 'Lights',
+                              deviceClass: 'Lights',
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.sleeptimer',
+                              displayName: 'Sleep',
+                              deviceClass: 'ToggleSwitch',
+                              command: 'W67:',
+                              readBit: 14,
+                              readLine: 5,
+                              readOff: 128,
+                            },
+                            {
+                              deviceId: 'spanet.lockmechanism.keypadlock',
+                              displayName: 'Lock',
+                              deviceClass: 'Lock',
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.sanitise',
+                              displayName: 'Clean',
+                              deviceClass: 'ToggleSwitch',
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.normalmode',
+                              displayName: 'Normal',
+                              deviceClass: 'ModeSwitch',
+                              command: 0,
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.econmode',
+                              displayName: 'Economy',
+                              deviceClass: 'ModeSwitch',
+                              command: 1,
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.awaymode',
+                              displayName: 'Away',
+                              deviceClass: 'ModeSwitch',
+                              command: 2,
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.weekmode',
+                              displayName: 'Week',
+                              deviceClass: 'ModeSwitch',
+                              command: 3,
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.psoff',
+                              displayName: 'Power Save Off',
+                              deviceClass: 'PowerSwitch',
+                              command: 0,
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.pslow',
+                              displayName: 'Power Save Low',
+                              deviceClass: 'PowerSwitch',
+                              command: 1,
+                            },
+                            {
+                              deviceId: 'spanet.controlswitch.pshigh',
+                              displayName: 'Power Save High',
+                              deviceClass: 'PowerSwitch',
+                              command: 2,
+                            },
+                          ];
+
+                          // Repeat for each device in the list
+                          for (const device of spaDevices) {
+
+                            // Assign device it's unique part identifier
+                            const uuid = this.api.hap.uuid.generate(device.deviceId);
+
+                            // Check whether it already exists
+                            const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+
+                            if (existingAccessory) {
+                              // Accessory already exists
+                              // Create accessory handler from platformAccessory.ts 
+                              new SpaNETPlatformAccessory(this, existingAccessory);
+          
+                              // Update accessory cache
+                              this.api.updatePlatformAccessories([existingAccessory]);
+      
+                            } else {
+                              // Accessory doesn't exist, create new accessory
+                              const accessory = new this.api.platformAccessory(device.displayName, uuid);
+
+                              // Store copy of the device object and data in the accessory context
+                              accessory.context.device = device;
+                              accessory.context.spaName = globalSpaVars[0];
+                              accessory.context.spaIp = globalSpaVars[1];
+                              accessory.context.spaSocket = globalSpaVars[2];
+                              accessory.context.spaMember = globalSpaVars[3];
+                              if (device.deviceClass === 'ToggleSwitch') {
+                                accessory.context.spaCommand = device.command;
+                                accessory.context.spaReadLine = device.readLine;
+                                accessory.context.spaReadBit = device.readBit;
+                                accessory.context.spaReadOff = device.readOff;
+                              }
+
+                              // Create handler for the accessory from platformAccessory.ts  
+                              new SpaNETPlatformAccessory(this, accessory);
+
+                              // Link the accessory to the SpaNET platform
+                              this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+                            }
+                          }
 
                         } catch {
-                          // eslint-disable-next-line max-len
                           this.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                          this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
                         }
 
                       });
                     } catch {
-                      // eslint-disable-next-line max-len
                       this.log.error('Error: The websocket connection to the spa failed, but login was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                      this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
                     }
                     client.destroy();
 
@@ -122,183 +258,30 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                 }
 
                 if (spaFound === false){
-                  // eslint-disable-next-line max-len
                   this.log.error('Error: The specified spa does not exist for the SpaLINK account. Please log in with a different account or click on the setting button below the homebridge-spanet module to change it.');
+                  this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
                 }
 
               } else {
-                // eslint-disable-next-line max-len
                 this.log.error('Error: No spa\'s are linked to the specified SpaLINK account. Please log in with a different account or link a spa in the SpaLINK app.');
+                this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
               }
 
             } else {
-              // eslint-disable-next-line max-len
               this.log.error('Error: Unable to obtain spa details from member, but login was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
             }
           });
 
         } else {
-          // eslint-disable-next-line max-len
           this.log.error('Error: Unable to login with details provided. Please ensure that you have the correct username and encrypted password (see Github for details).');
+          this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
         }
       });
 
     } else {
-      // eslint-disable-next-line max-len
       this.log.error('Error: Username, password and/or spa name not provided. Please click the settings button below the homebridge-spanet module to configure.');
-    }
-
-    if (!spaSuccess) {
-      // Warn the user the plugin will be inactive until the user fixes the specified error
-      this.log.warn('Info: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
-    }
-    
-    // Register/deregister each device for components of spa
-
-    const spaDevices = [
-      {
-        deviceId: 'spanet.thermostat.heaterpump',
-        displayName: 'Heater',
-        deviceClass: 'Thermostat',
-      },
-      {
-        deviceId: 'spanet.pump.pump2',
-        displayName: 'Jet 1',
-        deviceClass: 'ToggleSwitch',
-        command: 'S23:',
-        readBit: 7,
-        readLine: 4,
-        readOff: 0,
-      },
-      {
-        deviceId: 'spanet.pump.pump3',
-        displayName: 'Jet 2',
-        deviceClass: 'ToggleSwitch',
-        command: 'S24:',
-        readBit: 9,
-        readLine: 4,
-        readOff: 0,
-      },
-      {
-        deviceId: 'spanet.pump.blower',
-        displayName: 'Blower',
-        deviceClass: 'Blower',
-      },
-      {
-        deviceId: 'spanet.light.lights',
-        displayName: 'Lights',
-        deviceClass: 'Lights',
-      },
-      {
-        deviceId: 'spanet.controlswitch.sleeptimer',
-        displayName: 'Sleep',
-        deviceClass: 'ToggleSwitch',
-        command: 'W67:',
-        readBit: 14,
-        readLine: 5,
-        readOff: 128,
-      },
-      {
-        deviceId: 'spanet.lockmechanism.keypadlock',
-        displayName: 'Lock',
-        deviceClass: 'Lock',
-      },
-      {
-        deviceId: 'spanet.controlswitch.sanitise',
-        displayName: 'Clean',
-        deviceClass: 'ToggleSwitch',
-      },
-      {
-        deviceId: 'spanet.controlswitch.normalmode',
-        displayName: 'Normal',
-        deviceClass: 'ModeSwitch',
-        command: 0,
-      },
-      {
-        deviceId: 'spanet.controlswitch.econmode',
-        displayName: 'Economy',
-        deviceClass: 'ModeSwitch',
-        command: 1,
-      },
-      {
-        deviceId: 'spanet.controlswitch.awaymode',
-        displayName: 'Away',
-        deviceClass: 'ModeSwitch',
-        command: 2,
-      },
-      {
-        deviceId: 'spanet.controlswitch.weekmode',
-        displayName: 'Week',
-        deviceClass: 'ModeSwitch',
-        command: 3,
-      },
-      {
-        deviceId: 'spanet.controlswitch.psoff',
-        displayName: 'Power Save Off',
-        deviceClass: 'PowerSwitch',
-        command: 0,
-      },
-      {
-        deviceId: 'spanet.controlswitch.pslow',
-        displayName: 'Power Save Low',
-        deviceClass: 'PowerSwitch',
-        command: 1,
-      },
-      {
-        deviceId: 'spanet.controlswitch.pshigh',
-        displayName: 'Power Save High',
-        deviceClass: 'PowerSwitch',
-        command: 2,
-      },
-    ];
-
-    // Repeat for each device in the list
-    for (const device of spaDevices) {
-
-      // Assign device it's unique part identifier
-      const uuid = this.api.hap.uuid.generate(device.deviceId);
-
-      // Check whether it already exists
-      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-
-      if (existingAccessory) {
-        // Accessory already exists
-
-        if (device && spaSuccess) {
-          // Create accessory handler from platformAccessory.ts 
-          new SpaNETPlatformAccessory(this, existingAccessory);
-          
-          // Update accessory cache
-          this.api.updatePlatformAccessories([existingAccessory]);
-          
-        } else {
-          // Remove now invalidated accessory or all accessories if the spa failed to connect
-          this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        }
-      
-      } else {
-        // Accessory doesn't exist, create new accessory
-        const accessory = new this.api.platformAccessory(device.displayName, uuid);
-
-        // Store copy of the device object and data in the accessory context
-        accessory.context.device = device;
-        accessory.context.spaName = globalSpaVars[0];
-        accessory.context.spaIp = globalSpaVars[1];
-        accessory.context.spaSocket = globalSpaVars[2];
-        accessory.context.spaMember = globalSpaVars[3];
-        if (device.deviceClass === 'ToggleSwitch') {
-          accessory.context.spaCommand = device.command;
-          accessory.context.spaReadLine = device.readLine;
-          accessory.context.spaReadBit = device.readBit;
-          accessory.context.spaReadOff = device.readOff;
-        }
-
-        // Create handler for the accessory from platformAccessory.ts  
-        new SpaNETPlatformAccessory(this, accessory);
-
-        // Link the accessory to the SpaNET platform
-        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-      }
+      this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
     }
   }
 }
