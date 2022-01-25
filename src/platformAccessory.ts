@@ -633,7 +633,7 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value: CharacteristicValue) {
+  async setTargLock(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
@@ -650,5 +650,6 @@ export class SpaNETPlatformAccessory {
     });
 
     this.platform.log.debug('Set Characteristic On ->', value);
+    callback(null);
   }
 }
