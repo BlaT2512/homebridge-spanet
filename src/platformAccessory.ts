@@ -633,37 +633,22 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setTargLock(value: CharacteristicValue) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
     // Connect to socket and write data
     const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          // Send command to set lock state
-          let valueString = value as string;
-          if (valueString === '1'){
-            valueString = '2';
-          }
-          client.write('S21:' + valueString + '\n');
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
-    }
+    client.connect(9090, this.accessory.context.spaIp, () => {
+      client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+      // Send command to set lock state
+      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
+        client.write('S21:0\n');
+      } else {
+        client.write('S21:2\n');
+      }
+    });
 
     this.platform.log.debug('Set Characteristic On ->', value);
-    callback(null);
   }
 }
