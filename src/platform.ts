@@ -5,11 +5,6 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SpaNETPlatformAccessory } from './platformAccessory';
 
-declare global {
-  let globalSpaVars: Array<string>;
-  let client: net.Socket;
-}
-
 /////////////////////////
 // HOMEBRIDGE PLATFORM //
 /////////////////////////
@@ -31,6 +26,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       this.registerDevices();
     });
   }
+
+  globalSpaVars: Array<string> = [];
+  client = new net.Socket();
 
   /**
    * This function is invoked when homebridge restores cached accessories from disk at startup.
@@ -93,10 +91,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     // This is the correct spa that the user has chosen, test a connection to it's websocket
                     spaFound = true;
                     const spaIP = result['spaurl'].slice(0, -5);
-                    globalSpaVars = [result['name'], spaIP, result['id_sockets'], result['id_member']];
+                    this.globalSpaVars = [result['name'], spaIP, result['id_sockets'], result['id_member']];
                     this.log.info('Attempting to connect to... ' + result['name']);
-                    client = new net.Socket();
-                    client.connect(9090, spaIP, this.spaConnected);
+                    this.client.connect(9090, spaIP, this.spaConnected);
                   }
                 }
 
@@ -129,8 +126,8 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   }
 
   spaConnected() {
-    client.write('<connect--' + globalSpaVars['id_sockets'] + '--' + globalSpaVars['id_member'] + '>');
-    this.log.info('Successfully connected to spa ' + globalSpaVars['name']);
+    this.client.write('<connect--' + this.globalSpaVars[2] + '--' + this.globalSpaVars[3] + '>');
+    this.log.info('Successfully connected to spa ' + this.globalSpaVars[0]);
 
     // Register/deregister each device for components of spa
     const spaDevices = [
@@ -253,10 +250,10 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
         // Store copy of the device object and data in the accessory context
         accessory.context.device = device;
-        accessory.context.spaName = globalSpaVars[0];
-        accessory.context.spaIp = globalSpaVars[1];
-        accessory.context.spaSocket = globalSpaVars[2];
-        accessory.context.spaMember = globalSpaVars[3];
+        accessory.context.spaName = this.globalSpaVars[0];
+        accessory.context.spaIp = this.globalSpaVars[1];
+        accessory.context.spaSocket = this.globalSpaVars[2];
+        accessory.context.spaMember = this.globalSpaVars[3];
         if (device.deviceClass === 'ToggleSwitch') {
           accessory.context.spaCommand = device.command;
           accessory.context.spaReadLine = device.readLine;
