@@ -2,7 +2,6 @@
 import net = require('net');
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { SpaNETHomebridgePlatform } from './platform';
-import { CharacteristicContext } from 'hap-nodejs';
 
 ////////////////////////
 // PLATFORM ACCESSORY //
@@ -107,7 +106,7 @@ export class SpaNETPlatformAccessory {
             minStep: 1,
           });
         break;
-      
+      /*
       case 'Lock': // Lock Mechanism
         this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
           .onGet(this.getCurLock);
@@ -116,6 +115,74 @@ export class SpaNETPlatformAccessory {
           .onGet(this.getTargLock)
           .onSet(this.setTargLock);
         break;
+      */
+      case 'Lock': // Lock Mechanism
+        this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
+          .onGet(async (context) => {
+            return new Promise<number>((resolve) => {
+            // Connect to the websocket of the spa and request data
+              const client = new net.Socket();
+              client.connect(9090, context.spaIp, () => {
+                client.write('<connect--' + context.spaSocket + '--' + context.spaMember + '>');
+                client.write('RF\n');
+              });
+              // Wait for the result to be recieved from the spa
+              client.on('data', (data) => {
+                if (data.toString().split('\r\n')[0] === 'RF:') {
+                  client.destroy();
+                  // Parse the data to check the lock state
+                  let currentValue = data.toString().split('\r\n')[12].split(',')[13] as unknown as number;
+                  if (currentValue === 2){
+                    currentValue = 1;
+                  }
+                  resolve(currentValue);
+                }
+              });
+            });
+          });
+        
+        this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
+          .onGet(async (context) => {
+            return new Promise<number>((resolve) => {
+              // Connect to the websocket of the spa and request data
+              const client = new net.Socket();
+              client.connect(9090, context.spaIp, () => {
+                client.write('<connect--' + context.spaSocket + '--' + context.spaMember + '>');
+                client.write('RF\n');
+              });
+              // Wait for the result to be recieved from the spa
+              client.on('data', (data) => {
+                if (data.toString().split('\r\n')[0] === 'RF:') {
+                  client.destroy();
+                  // Parse the data to check the lock state
+                  let currentValue = data.toString().split('\r\n')[12].split(',')[13] as unknown as number;
+                  if (currentValue === 2){
+                    currentValue = 1;
+                  }
+                  resolve(currentValue);
+                }
+              });
+            });
+          })
+          .onSet(async (value, context) => {
+            return new Promise<void>((resolve) => {
+              const client = new net.Socket();
+              client.connect(9090, context.spaIp, () => {
+                client.write('<connect--' + context.spaSocket + '--' + context.spaMember + '>');
+                // Send command to set lock state
+                if (value === 0){
+                  client.write('S21:0\n');
+                } else {
+                  client.write('S21:2\n');
+                }
+                resolve();
+              });
+            //  this.platform.log.debug('Set Characteristic On ->', value);
+            });
+          });
+        break;
+      
+
       
       default: // Switch
         this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
@@ -656,7 +723,7 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value: CharacteristicValue, context: CharacteristicContext) {
+  async setTargLock(value, context) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
