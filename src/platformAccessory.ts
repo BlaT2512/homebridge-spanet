@@ -109,11 +109,11 @@ export class SpaNETPlatformAccessory {
       
       case 'Lock': // Lock Mechanism
         this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .on('get', this.getCurLock.bind(this));
+          .onGet(this.getCurLock);
         
         this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
-          .on('get', this.getTargLock.bind(this))
-          .on('set', this.setTargLock.bind(this));
+          .onGet(this.getTargLock)
+          .onSet(this.setTargLock);
         break;
       
       default: // Switch
@@ -595,7 +595,7 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETCURLOCK //
   ////////////////////////////
-  async getCurLock(callback: CharacteristicGetCallback) {
+  async getCurLock() {
     // getCurLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
@@ -608,13 +608,13 @@ export class SpaNETPlatformAccessory {
     }
 
     this.platform.log.debug('Get Characteristic On ->', currentValue);
-    callback(null, currentValue);
+    return(currentValue);
   }
 
   ////////////////////////////
   // FUNCTION - GETTARGLOCK //
   ////////////////////////////
-  async getTargLock(callback: CharacteristicGetCallback) {
+  async getTargLock() {
     // getTargLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
@@ -627,29 +627,30 @@ export class SpaNETPlatformAccessory {
     }
 
     this.platform.log.debug('Get Characteristic On ->', currentValue);
-    callback(null, currentValue);
+    return(currentValue);
   }
 
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setTargLock(value: CharacteristicValue) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
     // Connect to socket and write data
-    const client = new net.Socket();
-    client.connect(9090, this.accessory.context.spaIp, () => {
-      client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-      // Send command to set lock state
-      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
-        client.write('S21:0\n');
-      } else {
-        client.write('S21:2\n');
-      }
-      callback(null);
+    return new Promise<void>((resolve) => {
+      const client = new net.Socket();
+      client.connect(9090, this.accessory.context.spaIp, () => {
+        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+        // Send command to set lock state
+        if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
+          client.write('S21:0\n');
+        } else {
+          client.write('S21:2\n');
+        }
+        resolve();
+      });
+      this.platform.log.debug('Set Characteristic On ->', value);
     });
-
-    this.platform.log.debug('Set Characteristic On ->', value);
   }
 }
