@@ -127,7 +127,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
   spaConnected() {
     //this.client.write('<connect--' + this.globalSpaVars[2] + '--' + this.globalSpaVars[3] + '>');
-    this.log.info('Successfully connected to spa ' + this.globalSpaVars[0]);
+    //this.log.info('Successfully connected to spa ' + this.globalSpaVars[0]);
 
     // Register/deregister each device for components of spa
     const spaDevices = [
