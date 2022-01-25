@@ -612,12 +612,11 @@ export class SpaNETPlatformAccessory {
         if (data.toString().split('\r\n')[0] === 'RF:') {
           client.destroy();
           // Parse the data to check the lock state
-          let currentValue = data.toString().split('\r\n')[12].split(',')[13] as unknown as number;
-          if (currentValue === 2){
-            currentValue = 1;
+          const rawValue = data.toString().split('\r\n')[12].split(',')[13];
+          if (rawValue === '0'){
+            resolve(0);
           }
-          this.platform.log.info('Get Characteristic On ->', currentValue);
-          resolve(currentValue);
+          resolve(1);
         }
       });
     });
@@ -643,12 +642,11 @@ export class SpaNETPlatformAccessory {
         if (data.toString().split('\r\n')[0] === 'RF:') {
           client.destroy();
           // Parse the data to check the lock state
-          let currentValue = data.toString().split('\r\n')[12].split(',')[13] as unknown as number;
-          if (currentValue === 2){
-            currentValue = 1;
+          const rawValue = data.toString().split('\r\n')[12].split(',')[13];
+          if (rawValue === '0'){
+            resolve(0);
           }
-          this.platform.log.info('Get Characteristic On ->', currentValue);
-          resolve(currentValue);
+          resolve(1);
         }
       });
     });
@@ -672,7 +670,7 @@ export class SpaNETPlatformAccessory {
         } else {
           client.write('S21:2\n');
         }
-        this.platform.log.info('Set Characteristic On ->', value);
+        this.platform.log.debug('Set Characteristic LockTargState ->', value);
         resolve();
       });
     });
