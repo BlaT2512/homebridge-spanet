@@ -21,7 +21,7 @@ export class SpaNETPlatformAccessory {
       .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.deviceId);
 
     // Create the service for this accessory
-    switch(accessory.context.deviceClass) {
+    switch(accessory.context.device.deviceClass) {
       case 'Thermostat': // Heater Cooler
         this.service = this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat);
         break;
@@ -47,7 +47,7 @@ export class SpaNETPlatformAccessory {
     this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
 
     // Register handlers for the characteristics
-    switch(accessory.context.deviceClass) {
+    switch(accessory.context.device.deviceClass) {
       case 'Thermostat': // Thermostat
         this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState) // Whether the heater is currently heating/cooling
           .on('get', this.getCurState.bind(this));
@@ -177,7 +177,7 @@ export class SpaNETPlatformAccessory {
     const data = await this.spaData();
     // Parse the data and check whether the accessory in question is on or off
     let isOn: boolean;
-    switch(this.accessory.context.deviceClass){
+    switch(this.accessory.context.device.deviceClass){
       case 'Blower': {
         isOn = data.split('\n')[4].split(',')[8] as unknown as boolean; // Will only be a '0' or '1'
         break;
@@ -246,7 +246,7 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           
           // Switch for accessory type to send correct command
-          switch(this.accessory.context.deviceClass){
+          switch(this.accessory.context.device.deviceClass){
             case 'Blower': {
               const valueInt = value as number;
               client.write('S28:' + valueInt + '\n');
