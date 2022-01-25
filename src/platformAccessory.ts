@@ -638,19 +638,19 @@ export class SpaNETPlatformAccessory {
     // Input - value as string (string)
     
     // Connect to socket and write data
-    return new Promise<void>((resolve) => {
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-        // Send command to set lock state
-        if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
-          client.write('S21:0\n');
-        } else {
-          client.write('S21:2\n');
-        }
-        resolve();
-      });
-      this.platform.log.debug('Set Characteristic On ->', value);
+    //return new Promise<void>((resolve) => {
+    const client = new net.Socket();
+    client.connect(9090, this.accessory.context.spaIp, () => {
+      client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+      // Send command to set lock state
+      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
+        client.write('S21:0\n');
+      } else {
+        client.write('S21:2\n');
+      }
+      //resolve();
     });
+    this.platform.log.debug('Set Characteristic On ->', value);
+    //});
   }
 }
