@@ -634,15 +634,20 @@ export class SpaNETPlatformAccessory {
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
   async setTargLock(value: CharacteristicValue, context) {
-    this.platform.log.info(context);
+    let promContext;
+    try {
+      promContext = this.accessory.context;
+    } catch {
+      promContext = context;
+    }
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
     // Connect to socket and write data
     //return new Promise<void>((resolve) => {
     const client = new net.Socket();
-    client.connect(9090, context.spaIp, () => {
-      client.write('<connect--' + context.spaSocket + '--' + context.spaMember + '>');
+    client.connect(9090, promContext.spaIp, () => {
+      client.write('<connect--' + promContext.spaSocket + '--' + promContext.spaMember + '>');
       // Send command to set lock state
       if (value === 0){
         client.write('S21:0\n');
