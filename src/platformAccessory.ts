@@ -2,7 +2,6 @@
 import net = require('net');
 import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
 import { SpaNETHomebridgePlatform } from './platform';
-import { CharacteristicContext } from 'hap-nodejs';
 
 ////////////////////////
 // PLATFORM ACCESSORY //
@@ -634,7 +633,8 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value: CharacteristicValue, context: CharacteristicContext) {
+  async setTargLock(value: CharacteristicValue, context) {
+    this.platform.log.debug(context);
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
