@@ -634,7 +634,7 @@ export class SpaNETPlatformAccessory {
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
   async setTargLock(value: CharacteristicValue, context) {
-    this.platform.log.debug(context);
+    this.platform.log.info(context);
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
     
