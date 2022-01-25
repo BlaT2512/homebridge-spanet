@@ -232,22 +232,23 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       // Repeat for each device in the list
       for (const device of spaDevices) {
 
-        // Assign device it's unique part identifier
+        // Check if it already exists
         const uuid = this.api.hap.uuid.generate(device.deviceId);
-
-        // Check whether it already exists
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
         if (existingAccessory) {
-        // Accessory already exists
-        // Create accessory handler from platformAccessory.ts 
+          // Accessory already exists
+          // Update accessory cache
+          existingAccessory.context.spaName = this.globalSpaVars[0];
+          existingAccessory.context.spaIp = this.globalSpaVars[1];
+          existingAccessory.context.spaSocket = this.globalSpaVars[2];
+          existingAccessory.context.spaMember = this.globalSpaVars[3];
+          this.api.updatePlatformAccessories([existingAccessory]);
+          // Create accessory handler from platformAccessory.ts 
           new SpaNETPlatformAccessory(this, existingAccessory);
 
-          // Update accessory cache
-          this.api.updatePlatformAccessories([existingAccessory]);
-
         } else {
-        // Accessory doesn't exist, create new accessory
+          // Accessory doesn't exist, create new accessory
           const accessory = new this.api.platformAccessory(device.displayName, uuid);
 
           // Store copy of the device object and data in the accessory context
@@ -265,8 +266,6 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
           // Create handler for the accessory from platformAccessory.ts  
           new SpaNETPlatformAccessory(this, accessory);
-
-          // Link the accessory to the SpaNET platform
           this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
         }
       }
