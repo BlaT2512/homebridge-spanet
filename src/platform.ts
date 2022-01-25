@@ -99,7 +99,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                   this.log.error('Error: The specified spa does not exist for the SpaLINK account. Please log in with a different account or click on the setting button below the homebridge-spanet module to change it.');
                   this.log.warn('Warning: SpaNET plugin inactive. Please address specified issue and reboot Homebridge to re-attempt setup.');
                 }
-                this.spaConnected();
+                this.spaConnect();
 
               } else {
                 this.log.error('Error: No spa\'s are linked to the specified SpaLINK account. Please log in with a different account or link a spa in the SpaLINK app.');
@@ -124,7 +124,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     }
   }
 
-  spaConnected() {
+  spaConnect() {
     this.log.info('Attempting to connect to... ' + this.globalSpaVars[0]);
     const client = new net.Socket();
     client.connect(9090, this.globalSpaVars[1], () => {

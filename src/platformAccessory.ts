@@ -134,35 +134,21 @@ export class SpaNETPlatformAccessory {
   spaData() {
     // spaData - Connects to the websocket of the spa and get's data about the status of the spa to be parsed
     // Returns - var data (string)
-    return new Promise<string>((resolve, reject) => {
+    return new Promise<string>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
-      try {
-        client.connect(9090, this.accessory.context.spaIp, () => {
-
-          try {
-            client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-            client.write('RF\n');
-            // Wait for the result to be recieved from the spa
-            client.on('data', (data) => {
-              if (data.toString().split('\n')[0] === 'RF:') {
-                client.destroy();
-                // Return the RF data
-                resolve(data.toString());
-              }
-            });
-          } catch {
-            this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-            client.destroy();
-            reject();
-          }
-
-        });
-      } catch {
-        this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-        client.destroy();
-        reject();
-      }
+      client.connect(9090, this.accessory.context.spaIp, () => {
+        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+        client.write('RF\n');
+      });
+      // Wait for the result to be recieved from the spa
+      client.on('data', (data) => {
+        if (data.toString().split('\r\n')[0] === 'RF:') {
+          client.destroy();
+          // Return the RF data
+          resolve(data.toString());
+        }
+      });
     });
   }
 
@@ -179,15 +165,15 @@ export class SpaNETPlatformAccessory {
     let isOn: boolean;
     switch(this.accessory.context.device.deviceClass){
       case 'Blower': {
-        isOn = data.split('\n')[4].split(',')[8] as unknown as boolean; // Will only be a '0' or '1'
+        isOn = data.split('\r\n')[4].split(',')[8] as unknown as boolean; // Will only be a '0' or '1'
         break;
       }
       case 'Lights': {
-        isOn = data.split('\n')[4].split(',')[15] as unknown as boolean; // Will only be a '0' or '1'
+        isOn = data.split('\r\n')[4].split(',')[15] as unknown as boolean; // Will only be a '0' or '1'
         break;
       }
       case 'ModeSwitch': {
-        const operMode = data.split('\n')[3].split(',')[2];
+        const operMode = data.split('\r\n')[3].split(',')[2];
         const operSwitch = this.accessory.displayName.slice(0, 4).toUpperCase();
         if (operMode === operSwitch){
           isOn = true; 
@@ -197,7 +183,7 @@ export class SpaNETPlatformAccessory {
         break;
       }
       case 'PowerSwitch': {
-        const powerMode = data.split('\n')[5].split(',')[11];
+        const powerMode = data.split('\r\n')[5].split(',')[11];
         if (powerMode === this.accessory.context.spaCommand){
           isOn = true;
         } else {
@@ -207,14 +193,14 @@ export class SpaNETPlatformAccessory {
       }
       default: {
         if (this.accessory.displayName === 'Clean'){
-          const state = data.split('\n')[2].split(',')[24];
+          const state = data.split('\r\n')[2].split(',')[24];
           if (state === 'W.CLN'){
             isOn = true;
           } else {
             isOn = false;
           }
         } else {
-          const state = data.split('\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
+          const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
           if (state === this.accessory.context.spaReadOff){
             isOn = false;
           } else {
@@ -253,7 +239,7 @@ export class SpaNETPlatformAccessory {
               break;
             }
             case 'Lights': {
-              if (data.split('\n')[4].split(',')[15] as unknown as boolean !== value as boolean){
+              if (data.split('\r\n')[4].split(',')[15] as unknown as boolean !== value as boolean){
                 client.write('W14\n');
               }
               break;
@@ -272,7 +258,7 @@ export class SpaNETPlatformAccessory {
             }
             default: {
               if (this.accessory.displayName === 'Clean'){
-                const state = data.split('\n')[2].split(',')[24];
+                const state = data.split('\r\n')[2].split(',')[24];
                 const valueBool = value as boolean;
                 if (state === 'W.CLN' && !valueBool){
                   client.write('W12\n');
@@ -325,13 +311,13 @@ export class SpaNETPlatformAccessory {
     const data = await this.spaData();
     // Parse the data to check the heater state
     // 0 - OFF, 1 - HEATING, 2 - COOLING
-    let currentValue = data.split('\n')[4].split(',')[13] as unknown as number; // Will only be a '0' or '1'
+    let currentValue = data.split('\r\n')[4].split(',')[13] as unknown as number; // Will only be a '0' or '1'
     if (currentValue === 1){
       // This means the heater is on, but it could be heating or cooling
-      const waterTemp = data.split('\n')[4].split(',')[16] as unknown as number;
-      const setTemp = data.split('\n')[5].split(',')[9] as unknown as number;
+      const waterTemp = data.split('\r\n')[4].split(',')[16] as unknown as number;
+      const setTemp = data.split('\r\n')[5].split(',')[9] as unknown as number;
       if (waterTemp > setTemp){
-        const heatState = data.split('\n')[6].split(',')[27] as unknown as number;
+        const heatState = data.split('\r\n')[6].split(',')[27] as unknown as number;
         if (heatState === 0 || heatState === 2){
           currentValue = 2; // Heater is cooling not heating
         }
@@ -353,7 +339,7 @@ export class SpaNETPlatformAccessory {
     const data = await this.spaData();
     // Parse the data to check the heater state
     // 0 - OFF, 1 - HEATING, 2 - COOLING, 3 - AUTO
-    let currentValue = data.split('\n')[6].split(',')[27] as unknown as number;
+    let currentValue = data.split('\r\n')[6].split(',')[27] as unknown as number;
     if (currentValue === 0){
       currentValue = 3;
     } else if (currentValue === 3){
@@ -413,7 +399,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the water temperature
-    const currentValueString = data.split('\n')[4].split(',')[16] as string;
+    const currentValueString = data.split('\r\n')[4].split(',')[16] as string;
     // Convert to float
     const currentValueInt = String(currentValueString).slice(0, -1) + '.' + String(currentValueString).slice(-1);
     const currentValue = parseFloat(currentValueInt);
@@ -432,7 +418,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the set water temperature
-    const currentValueString = data.split('\n')[5].split(',')[9] as string;
+    const currentValueString = data.split('\r\n')[5].split(',')[9] as string;
     // Convert to float
     const currentValueInt = String(currentValueString).slice(0, -1) + '.' + String(currentValueString).slice(-1);
     const currentValue = parseFloat(currentValueInt);
@@ -516,7 +502,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the blower speed
-    const currentValue = data.split('\n')[5].split(',')[2] as unknown as number;
+    const currentValue = data.split('\r\n')[5].split(',')[2] as unknown as number;
 
     this.platform.log.debug('Get Characteristic On ->', currentValue);
     callback(null, currentValue);
@@ -566,7 +552,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the light brightness
-    const currentValue = data.split('\n')[5].split(',')[3] as unknown as number;
+    const currentValue = data.split('\r\n')[5].split(',')[3] as unknown as number;
 
     this.platform.log.debug('Get Characteristic On ->', currentValue);
     callback(null, currentValue);
@@ -616,7 +602,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the lock state
-    let currentValue = data.split('\n')[12].split(',')[13] as unknown as number;
+    let currentValue = data.split('\r\n')[12].split(',')[13] as unknown as number;
     if (currentValue === 2){
       currentValue = 1;
     }
@@ -635,7 +621,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the lock state
-    let currentValue = data.split('\n')[12].split(',')[13] as unknown as number;
+    let currentValue = data.split('\r\n')[12].split(',')[13] as unknown as number;
     if (currentValue === 2){
       currentValue = 1;
     }
