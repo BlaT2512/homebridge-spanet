@@ -647,9 +647,9 @@ export class SpaNETPlatformAccessory {
       } else {
         client.write('S21:2\n');
       }
+      callback(null);
     });
 
     this.platform.log.debug('Set Characteristic On ->', value);
-    callback(null);
   }
 }
