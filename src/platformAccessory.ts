@@ -616,6 +616,7 @@ export class SpaNETPlatformAccessory {
           if (currentValue === 2){
             currentValue = 1;
           }
+          this.platform.log.info('Get Characteristic On ->', currentValue);
           resolve(currentValue);
         }
       });
@@ -646,6 +647,7 @@ export class SpaNETPlatformAccessory {
           if (currentValue === 2){
             currentValue = 1;
           }
+          this.platform.log.info('Get Characteristic On ->', currentValue);
           resolve(currentValue);
         }
       });
@@ -670,9 +672,9 @@ export class SpaNETPlatformAccessory {
         } else {
           client.write('S21:2\n');
         }
+        this.platform.log.info('Set Characteristic On ->', value);
         resolve();
       });
-    //  this.platform.log.debug('Set Characteristic On ->', value);
     });
   }
 }
