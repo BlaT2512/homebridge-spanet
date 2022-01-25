@@ -109,10 +109,10 @@ export class SpaNETPlatformAccessory {
       
       case 'Lock': // Lock Mechanism
         this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .onGet(this.getCurLock);
+          .on('get', this.getCurLock.bind(this));
         
         this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
-          .onGet(this.getTargLock)
+          .on('get', this.getTargLock.bind(this))
           .onSet(this.setTargLock);
         break;
       
@@ -595,61 +595,39 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETCURLOCK //
   ////////////////////////////
-  async getCurLock() {
+  async getCurLock(callback: CharacteristicGetCallback) {
     // getCurLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
-    return new Promise<number>((resolve) => {
-      // Connect to the websocket of the spa and request data
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-        client.write('RF\n');
-      });
-      // Wait for the result to be recieved from the spa
-      client.on('data', (data) => {
-        if (data.toString().split('\r\n')[0] === 'RF:') {
-          client.destroy();
-          // Parse the data to check the lock state
-          let currentValue = data.toString().split('\r\n')[12].split(',')[13] as unknown as number;
-          if (currentValue === 2){
-            currentValue = 1;
-          }
-          this.platform.log.debug('Get Characteristic On ->', currentValue);
-          resolve(currentValue);
-        }
-      });
-    });
+    // Call function to get latest data from spa
+    const data = await this.spaData();
+    // Parse the data to check the lock state
+    let currentValue = data.split('\r\n')[12].split(',')[13] as unknown as number;
+    if (currentValue === 2){
+      currentValue = 1;
+    }
+
+    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    callback(null, currentValue);
   }
 
   ////////////////////////////
   // FUNCTION - GETTARGLOCK //
   ////////////////////////////
-  async getTargLock() {
+  async getTargLock(callback: CharacteristicGetCallback) {
     // getTargLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
-    return new Promise<number>((resolve) => {
-      // Connect to the websocket of the spa and request data
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-        client.write('RF\n');
-      });
-      // Wait for the result to be recieved from the spa
-      client.on('data', (data) => {
-        if (data.toString().split('\r\n')[0] === 'RF:') {
-          client.destroy();
-          // Parse the data to check the lock state
-          let currentValue = data.toString().split('\r\n')[12].split(',')[13] as unknown as number;
-          if (currentValue === 2){
-            currentValue = 1;
-          }
-          this.platform.log.debug('Get Characteristic On ->', currentValue);
-          resolve(currentValue);
-        }
-      });
-    });
+    // Call function to get latest data from spa
+    const data = await this.spaData();
+    // Parse the data to check the lock state
+    let currentValue = data.split('\r\n')[12].split(',')[13] as unknown as number;
+    if (currentValue === 2){
+      currentValue = 1;
+    }
+
+    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    callback(null, currentValue);
   }
 
   ////////////////////////////
