@@ -27,6 +27,7 @@
     "homebridge-plugin"
   ],
   "dependencies": {
+    "hap-nodejs": "^0.10.0",
     "net": "^1.0.2",
     "request": "^2.88.2"
   },
