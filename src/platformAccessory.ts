@@ -138,6 +138,7 @@ export class SpaNETPlatformAccessory {
 
     this.client.on('data', (data) => {
       if (data.toString().split('\r\n')[0] === 'RF:') {
+        console.log(data.toString());
         if (data.toString().split('\r\n')[12].split(',')[13] === '0') {
           this.service.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 0);
           this.service.updateCharacteristic(this.platform.Characteristic.LockTargetState, 0);
