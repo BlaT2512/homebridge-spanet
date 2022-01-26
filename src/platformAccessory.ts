@@ -265,13 +265,13 @@ export class SpaNETPlatformAccessory {
             }
             case 'ModeSwitch': {
               if (value as boolean){
-                client.write('W66:' + this.accessory.context.spaCommand + '\n');
+                client.write('W66:' + this.accessory.context.command + '\n');
               }
               break;
             }
             case 'PowerSwitch': {
               if (value as boolean){
-                client.write('W63:' + this.accessory.context.spaCommand + '\n');
+                client.write('W63:' + this.accessory.context.command + '\n');
               }
               break;
             }
@@ -290,7 +290,7 @@ export class SpaNETPlatformAccessory {
                     valueInt = 128;
                   }
                 }
-                client.write(this.accessory.context.spaCommand + valueInt + '\n');
+                client.write(this.accessory.context.command + valueInt + '\n');
               }
               break;
             }
