@@ -210,22 +210,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           command: '3',
         },
         {
-          deviceId: 'spanet.controlswitch.psoff',
-          displayName: 'Power Save Off',
+          deviceId: 'spanet.controlswitch.powersave',
+          displayName: 'Power Save',
           deviceClass: 'PowerSwitch',
-          command: '0',
-        },
-        {
-          deviceId: 'spanet.controlswitch.pslow',
-          displayName: 'Power Save Low',
-          deviceClass: 'PowerSwitch',
-          command: '1',
-        },
-        {
-          deviceId: 'spanet.controlswitch.pshigh',
-          displayName: 'Power Save High',
-          deviceClass: 'PowerSwitch',
-          command: '2',
         },
       ];
 
