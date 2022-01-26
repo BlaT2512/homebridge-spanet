@@ -635,11 +635,13 @@ export class SpaNETPlatformAccessory {
     callback(null);
   }
 
-  getCurLock() {
+  getCurLock(callback) {
     this.client.write('RF\n');
+    callback(null);
   }
 
-  getTargLock() {
+  getTargLock(callback) {
     this.client.write('RF\n');
+    callback(null);
   }
 }
