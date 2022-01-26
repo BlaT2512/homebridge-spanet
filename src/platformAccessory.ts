@@ -613,10 +613,12 @@ export class SpaNETPlatformAccessory {
           client.destroy();
           // Parse the data to check the lock state
           const rawValue = data.toString().split('\r\n')[12].split(',')[13];
+          this.platform.log.debug('Get Characteristic LockTargState ->', rawValue);
           if (rawValue === '0'){
             resolve(0);
+          } else {
+            resolve(1);
           }
-          resolve(1);
         }
       });
     });
@@ -643,10 +645,12 @@ export class SpaNETPlatformAccessory {
           client.destroy();
           // Parse the data to check the lock state
           const rawValue = data.toString().split('\r\n')[12].split(',')[13];
+          this.platform.log.debug('Get Characteristic LockTargState ->', rawValue);
           if (rawValue === '0'){
             resolve(0);
+          } else {
+            resolve(1);
           }
-          resolve(1);
         }
       });
     });
@@ -655,21 +659,24 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value: CharacteristicValue) {
+  async setTargLock(value) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
-    
+      
     // Connect to socket and write data
     return new Promise<void>((resolve) => {
       const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+      client.connect(9090, '54.79.54.66', () => {
+        client.write('<connect--7889--5966>');
+      });
+      client.on('data', () => {
         // Send command to set lock state
         if (value === 0){
           client.write('S21:0\n');
         } else {
           client.write('S21:2\n');
         }
+        client.destroy();
         this.platform.log.debug('Set Characteristic LockTargState ->', value);
         resolve();
       });
