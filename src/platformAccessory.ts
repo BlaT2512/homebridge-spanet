@@ -282,7 +282,7 @@ export class SpaNETPlatformAccessory {
             }
             default: {
               if (this.accessory.displayName === 'Clean'){
-                const state = data.split('\r\n')[2].split(',')[24];
+                const state = data.split('\r\n')[4].split(',')[17];
                 const valueBool = value as boolean;
                 if (state === 'W.CLN' && !valueBool){
                   client.write('W12\n');
