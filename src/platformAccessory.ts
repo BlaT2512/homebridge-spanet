@@ -600,6 +600,7 @@ export class SpaNETPlatformAccessory {
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
+    this.platform.log.debug('Starting Get Characteristic LockTargState ->');
     const value = await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
@@ -633,6 +634,7 @@ export class SpaNETPlatformAccessory {
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
+    this.platform.log.debug('Starting Get Characteristic LockTargState ->');
     const value = await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
@@ -673,16 +675,16 @@ export class SpaNETPlatformAccessory {
       });
       client.on('data', () => {
         // Send command to set lock state
-        if (value === 0){
+        if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
           client.write('S21:0\n');
         } else {
           client.write('S21:2\n');
         }
         client.destroy();
-        this.platform.log.debug('Set Characteristic LockTargState ->', value);
         resolve();
       });
     });
+    this.platform.log.debug('Set Characteristic LockTargState ->', value);
     callback(null);
   }
 }
