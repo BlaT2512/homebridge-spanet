@@ -205,7 +205,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'PowerSwitch': {
         const powerMode = data.split('\r\n')[5].split(',')[11];
-        if (powerMode === this.accessory.context.spaCommand){
+        if (powerMode === this.accessory.context.spaCommand.toString()){
           isOn = true;
         } else {
           isOn = false;
@@ -265,13 +265,13 @@ export class SpaNETPlatformAccessory {
             }
             case 'ModeSwitch': {
               if (value as boolean){
-                client.write('W66:' + this.accessory.context.command + '\n');
+                client.write('W66:' + this.accessory.context.spaCommand.toString() + '\n');
               }
               break;
             }
             case 'PowerSwitch': {
               if (value as boolean){
-                client.write('W63:' + this.accessory.context.command + '\n');
+                client.write('W63:' + this.accessory.context.spaCommand.toString() + '\n');
               }
               break;
             }
@@ -290,7 +290,7 @@ export class SpaNETPlatformAccessory {
                     valueInt = 128;
                   }
                 }
-                client.write(this.accessory.context.command + valueInt + '\n');
+                client.write(this.accessory.context.spaCommand + valueInt + '\n');
               }
               break;
             }
