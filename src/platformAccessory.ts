@@ -35,7 +35,7 @@ export class SpaNETPlatformAccessory {
         break;
       
       case 'Lock': // Lock Mechanism
-        this.service = this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.Switch);
+        this.service = this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.LockMechanism);
         break;
       
       default: // Switch
