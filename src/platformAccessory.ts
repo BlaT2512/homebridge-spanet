@@ -454,7 +454,7 @@ export class SpaNETPlatformAccessory {
   async setTargTemp(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     // setTargTemp - Set the temperature for the water heater
     // Input - value as string (string)
-    this.platform.log.debug('Set Characteristic On ->', value);
+    
     // Connect to socket and write data
     const client = new net.Socket();
     try {
@@ -479,7 +479,7 @@ export class SpaNETPlatformAccessory {
               valueString = '0' + valueString + '0';
             }
           }
-          
+          this.platform.log.debug('Set Characteristic On ->', valueString);
           client.write('W40:' + valueString + '\n');
         } catch {
           this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
