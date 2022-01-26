@@ -664,7 +664,7 @@ export class SpaNETPlatformAccessory {
     // Input - value as string (string)
       
     // Connect to socket and write data
-    return new Promise<void>((resolve, reject) => {
+    return await new Promise<void>((resolve, reject) => {
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
         client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
