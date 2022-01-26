@@ -243,6 +243,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           existingAccessory.context.spaIp = this.globalSpaVars[1];
           existingAccessory.context.spaSocket = this.globalSpaVars[2];
           existingAccessory.context.spaMember = this.globalSpaVars[3];
+          if (device.command !== null) {
+            existingAccessory.context.spaCommand = device.command;
+          }
           this.api.updatePlatformAccessories([existingAccessory]);
           // Create accessory handler from platformAccessory.ts 
           new SpaNETPlatformAccessory(this, existingAccessory);
@@ -257,7 +260,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           accessory.context.spaIp = this.globalSpaVars[1];
           accessory.context.spaSocket = this.globalSpaVars[2];
           accessory.context.spaMember = this.globalSpaVars[3];
-          accessory.context.spaCommand = device.command;
+          if (device.command !== null) {
+            accessory.context.spaCommand = device.command;
+          }
           if (device.deviceClass === 'ToggleSwitch') {
             accessory.context.spaReadLine = device.readLine;
             accessory.context.spaReadBit = device.readBit;
