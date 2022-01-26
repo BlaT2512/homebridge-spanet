@@ -462,25 +462,10 @@ export class SpaNETPlatformAccessory {
         try {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set temperature
-          let valueString = value as string;
-          if (valueString.includes('.')){
-            if (valueString[2] === '.'){
-              valueString = valueString.replace('.', '');
-              valueString = valueString.slice(0, 3);
-            } else {
-              valueString = valueString.replace('.', '');
-              valueString = valueString.slice(0, 2);
-              valueString = '0' + valueString;
-            }
-          } else {
-            if (valueString.length === 2){
-              valueString = valueString + '0';
-            } else {
-              valueString = '0' + valueString + '0';
-            }
-          }
-          this.platform.log.debug('Set Characteristic On ->', valueString);
-          client.write('W40:' + valueString + '\n');
+          const valueSend = (value as number * 10).toFixed().padStart(3, '0');
+          this.platform.log.debug('Set Characteristic On ->', valueSend);
+          client.write('W40:' + valueSend + '\n');
+          callback(null);
         } catch {
           this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
           this.platform.log.warn('Failed to set characteristic for spa device');
@@ -494,9 +479,6 @@ export class SpaNETPlatformAccessory {
       client.destroy();
       callback(null);
     }
-
-    this.platform.log.debug('Set Characteristic On ->', value);
-    callback(null);
   }
 
   /////////////////////////
