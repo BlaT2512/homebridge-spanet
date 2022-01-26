@@ -119,7 +119,7 @@ export class SpaNETPlatformAccessory {
       default: // Switch
         this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
           .on('get', this.getOn.bind(this))
-          .on('set', this.setOn.bind(this));
+          .onSet(this.setOn.bind(this));
         break;
     }
     this.setupSocket();
