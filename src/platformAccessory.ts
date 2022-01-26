@@ -85,7 +85,7 @@ export class SpaNETPlatformAccessory {
           .on('get', this.getFanSpeed.bind(this))
           .on('set', this.setFanSpeed.bind(this))
           .setProps({
-            minValue: 1,
+            minValue: 0,
             maxValue: 5,
             minStep: 1,
           });
@@ -100,7 +100,7 @@ export class SpaNETPlatformAccessory {
           .on('get', this.getBrightness.bind(this))
           .on('set', this.setBrightness.bind(this))
           .setProps({
-            minValue: 1,
+            minValue: 0,
             maxValue: 5,
             minStep: 1,
           });
@@ -386,9 +386,9 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set mode
           let valueInt = value as string;
-          if (valueInt === '0'){
+          if (value === this.platform.Characteristic.TargetHeatingCoolingState.OFF){
             valueInt = '3';
-          } else if (valueInt === '3'){
+          } else if (value === this.platform.Characteristic.TargetHeatingCoolingState.AUTO){
             valueInt = '0';
           }
           client.write('W99:' + valueInt + '\n');
@@ -576,7 +576,9 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set brightness
           const valueString = value as string;
-          client.write('S08:' + valueString + '\n');
+          if (value > 0) {
+            client.write('S08:' + valueString + '\n');
+          }
         } catch {
           this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
           this.platform.log.warn('Failed to set characteristic for spa device');
