@@ -73,7 +73,6 @@ export class SpaNETPlatformAccessory {
           .setProps({
             minValue: 0,
             maxValue: 0,
-            minStep: 0,
           });
         break;
       
@@ -363,9 +362,9 @@ export class SpaNETPlatformAccessory {
     // 0 - OFF, 1 - HEATING, 2 - COOLING, 3 - AUTO
     let currentValue = data.split('\r\n')[6].split(',')[27] as unknown as number;
     if (currentValue === 0){
-      currentValue = 3;
+      currentValue = this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
     } else if (currentValue === 3){
-      currentValue = 0;
+      currentValue = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
     }
 
     this.platform.log.debug('Get Characteristic On ->', currentValue);
@@ -455,7 +454,7 @@ export class SpaNETPlatformAccessory {
   async setTargTemp(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     // setTargTemp - Set the temperature for the water heater
     // Input - value as string (string)
-    
+    this.platform.log.debug('Set Characteristic On ->', value);
     // Connect to socket and write data
     const client = new net.Socket();
     try {
