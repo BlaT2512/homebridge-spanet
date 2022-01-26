@@ -205,7 +205,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'PowerSwitch': {
         const powerMode = data.split('\r\n')[5].split(',')[11];
-        if (powerMode === this.accessory.context.command){
+        if (powerMode === this.accessory.context.spaCommand){
           isOn = true;
         } else {
           isOn = false;
