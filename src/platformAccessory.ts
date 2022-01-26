@@ -529,7 +529,7 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set fan speed
           const valueString = value as string;
-          if (value > 0) {
+          if (value as number > 0) {
             client.write('S13:' + valueString + '\n');
             client.write('S28:0\n');
           } else {
@@ -585,7 +585,7 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set brightness
           const valueString = value as string;
-          if (value > 0) {
+          if (value as number > 0) {
             client.write('S08:' + valueString + '\n');
           } else {
             client.write('W14\n');
