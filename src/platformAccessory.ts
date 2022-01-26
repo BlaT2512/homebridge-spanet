@@ -186,11 +186,11 @@ export class SpaNETPlatformAccessory {
     let isOn: boolean;
     switch(this.accessory.context.device.deviceClass){
       case 'Blower': {
-        isOn = data.split('\r\n')[4].split(',')[8] as unknown as boolean; // Will only be a '0' or '1'
+        isOn = !!(data.split('\r\n')[4].split(',')[8] as unknown as number); // Will only be a '0' or '1'
         break;
       }
       case 'Lights': {
-        isOn = data.split('\r\n')[4].split(',')[15] as unknown as boolean; // Will only be a '0' or '1'
+        isOn = !!(data.split('\r\n')[4].split(',')[15] as unknown as number); // Will only be a '0' or '1'
         break;
       }
       case 'ModeSwitch': {
@@ -214,12 +214,7 @@ export class SpaNETPlatformAccessory {
       }
       default: {
         if (this.accessory.displayName === 'Clean'){
-          const state = data.split('\r\n')[2].split(',')[24];
-          if (state === 'W.CLN'){
-            isOn = true;
-          } else {
-            isOn = false;
-          }
+          isOn = !!(data.split('\r\n')[4].split(',')[17] as unknown as number);
         } else {
           const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
           if (state === this.accessory.context.spaReadOff){
@@ -282,12 +277,8 @@ export class SpaNETPlatformAccessory {
             }
             default: {
               if (this.accessory.displayName === 'Clean'){
-                const state = data.split('\r\n')[4].split(',')[17];
-                const valueBool = value as boolean;
-                if (state === 'W.CLN' && !valueBool){
-                  client.write('W12\n');
-                }
-                if (state !== 'W.CLN' && valueBool){
+                const state = data.split('\r\n')[4].split(',')[17] as unknown as number;
+                if (!!state !== value as boolean){
                   client.write('W12\n');
                 }
               } else {
