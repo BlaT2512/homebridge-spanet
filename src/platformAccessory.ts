@@ -35,7 +35,7 @@ export class SpaNETPlatformAccessory {
         break;
       
       case 'Lock': // Lock Mechanism
-        this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
+        this.service = this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.Switch);
         break;
       
       default: // Switch
@@ -108,10 +108,10 @@ export class SpaNETPlatformAccessory {
         break;
       
       case 'Lock': // Lock Mechanism
-        //this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-        //  .on('get', this.getCurLock.bind(this));
+        this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
+          .on('get', this.getCurLock.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the keypad lock should be unlocked/locked
+        this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
           .on('get', this.getTargLock.bind(this))
           .on('set', this.setTargLock.bind(this));
         break;
@@ -122,13 +122,13 @@ export class SpaNETPlatformAccessory {
           .onSet(this.setOn.bind(this));
         break;
     }
-    this.setupSocket();
+    //this.setupSocket();
   }
 
   // you must call the callback function
   // the first argument should be null if there were no errors
   // the second argument should be the value to return
-
+  /*
   client = new net.Socket();
 
   setupSocket() {
@@ -148,7 +148,7 @@ export class SpaNETPlatformAccessory {
         }
       }
     });
-  }
+  }*/
 
   ////////////////////////
   // FUNCTION - SPADATA //
@@ -614,27 +614,108 @@ export class SpaNETPlatformAccessory {
     callback(null);
   }
 
+  ///////////////////////////
+  // FUNCTION - GETCURLOCK //
+  ///////////////////////////
+  async getCurLock(callback) {
+    // getCurLock - Get the current lock state for the keypad lock
+    // Returns - const currentValue (number)
+
+    // Call function to get latest data from spa
+    this.platform.log.debug('Starting Get Characteristic LockTargState ->');
+    const value = await new Promise<number>((resolve) => {
+      // Connect to the websocket of the spa and request data
+      const client = new net.Socket();
+      client.connect(9090, this.accessory.context.spaIp, () => {
+        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+        client.write('RF\n');
+      });
+      // Wait for the result to be recieved from the spa
+      client.on('data', (data) => {
+        if (data.toString().split('\r\n')[0] === 'RF:') {
+          client.destroy();
+          // Parse the data to check the lock state
+          const rawValue = data.toString().split('\r\n')[12].split(',')[13];
+          this.platform.log.debug('Get Characteristic LockTargState ->', rawValue);
+          if (rawValue === '0'){
+            resolve(0);
+          } else {
+            resolve(1);
+          }
+        }
+      });
+    });
+    callback(null, value);
+  }
+
+  ////////////////////////////
+  // FUNCTION - GETTARGLOCK //
+  ////////////////////////////
+  async getTargLock(callback) {
+    // getTargLock - Get the current lock state for the keypad lock
+    // Returns - const currentValue (number)
+
+    // Call function to get latest data from spa
+    this.platform.log.debug('Starting Get Characteristic LockTargState ->');
+    const value = await new Promise<number>((resolve) => {
+      // Connect to the websocket of the spa and request data
+      const client = new net.Socket();
+      client.connect(9090, this.accessory.context.spaIp, () => {
+        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+        client.write('RF\n');
+      });
+      // Wait for the result to be recieved from the spa
+      client.on('data', (data) => {
+        if (data.toString().split('\r\n')[0] === 'RF:') {
+          client.destroy();
+          // Parse the data to check the lock state
+          const rawValue = data.toString().split('\r\n')[12].split(',')[13];
+          this.platform.log.debug('Get Characteristic LockTargState ->', rawValue);
+          if (rawValue === '0'){
+            resolve(0);
+          } else {
+            resolve(1);
+          }
+        }
+      });
+    });
+    callback(null, value);
+  }
+
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  setTargLock(value: CharacteristicValue) {
+  async setTargLock(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     // setTargLock - Set the target lock state for the keypad lock
-    // Input - characteristic value
-    if (value as number === 0){
-      this.client.write('S21:0\n');
-    } else {
-      this.client.write('S21:2\n');
+    // Input - value as string (string)
+      
+    // Connect to socket and write data
+    const client = new net.Socket();
+    try {
+      client.connect(9090, this.accessory.context.spaIp, () => {
+        try {
+          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+          // Send command to set lock state
+          let valueString = value as string;
+          if (valueString === '1'){
+            valueString = '2';
+          }
+          client.write('S21:' + valueString + '\n');
+        } catch {
+          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+          this.platform.log.warn('Failed to set characteristic for spa device');
+          client.destroy();
+          callback(null);
+        }
+      });
+    } catch {
+      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
+      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
+      client.destroy();
+      callback(null);
     }
-    this.platform.log.debug('Set Characteristic LockTargState ->', value);
-  }
-
-  getCurLock(callback: CharacteristicGetCallback) {
-    this.client.write('RF\n');
-    callback(null);
-  }
-
-  getTargLock(callback: CharacteristicGetCallback) {
-    this.client.write('RF\n');
+  
+    this.platform.log.debug('Set Characteristic On ->', value);
     callback(null);
   }
 }
