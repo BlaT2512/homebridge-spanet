@@ -529,7 +529,12 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set fan speed
           const valueString = value as string;
-          client.write('S13:' + valueString + '\n');
+          if (value > 0) {
+            client.write('S13:' + valueString + '\n');
+            client.write('S28:0\n');
+          } else {
+            client.write('S28:2\n');
+          }
           client.destroy();
         } catch {
           this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
@@ -582,6 +587,8 @@ export class SpaNETPlatformAccessory {
           const valueString = value as string;
           if (value > 0) {
             client.write('S08:' + valueString + '\n');
+          } else {
+            client.write('W14\n');
           }
         } catch {
           this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
