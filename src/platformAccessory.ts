@@ -7,7 +7,7 @@ import { SpaNETHomebridgePlatform } from './platform';
 // PLATFORM ACCESSORY //
 ////////////////////////
 export class SpaNETPlatformAccessory {
-  private service: Service;
+  private service: Array<Service>;
 
   constructor(
     private readonly platform: SpaNETHomebridgePlatform,
@@ -20,134 +20,232 @@ export class SpaNETPlatformAccessory {
       .setCharacteristic(this.platform.Characteristic.Model, accessory.context.device.deviceId)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.deviceId);
 
-    // Create the service for this accessory
+    // Create the service for this accessory and register GET/SET handlers
     switch(accessory.context.device.deviceClass) {
       case 'Thermostat': // Heater Cooler
-        this.service = this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat);
-        break;
-      
-      case 'Blower': // Fan
-        this.service = this.accessory.getService(this.platform.Service.Fan) || this.accessory.addService(this.platform.Service.Fan);
-        break;
-      
-      case 'Lights': // Lightbulb
-        this.service = this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb);
-        break;
-      
-      case 'Lock': // Lock Mechanism
-        this.service = this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.LockMechanism);
-        break;
-      
-      default: // Switch
-        this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
-        break;
-    }
-
-    // Set display name for the service, as will be seen in the Home App
-    this.service.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
-
-    // Register handlers for the characteristics
-    switch(accessory.context.device.deviceClass) {
-      case 'Thermostat': // Thermostat
-        this.service.getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState) // Whether the heater is currently heating/cooling
+        this.service = [this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat)];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState) // Whether the heater is currently heating/cooling
           .on('get', this.getCurState.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState) // Whether the heater should be heating/cooling
+        this.service[0].getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState) // Whether the heater should be heating/cooling
           .on('get', this.getTargState.bind(this))
           .on('set', this.setTargState.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.CurrentTemperature) // Current temperature of the spa
+        this.service[0].getCharacteristic(this.platform.Characteristic.CurrentTemperature) // Current temperature of the spa
           .on('get', this.getCurTemp.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.TargetTemperature) // Target temperature of the spa
+        this.service[0].getCharacteristic(this.platform.Characteristic.TargetTemperature) // Target temperature of the spa
           .on('get', this.getTargTemp.bind(this))
           .on('set', this.setTargTemp.bind(this))
-          .setProps({
-            minValue: 5,
-            maxValue: 41,
-            minStep: 0.2,
-          });
+          .setProps({ minValue: 5, maxValue: 41, minStep: 0.2});
         
-        this.service.getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits) // Temperature units of the heater
+        this.service[0].getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits) // Temperature units of the heater
           .on('get', this.getUnits.bind(this))
-          .setProps({
-            minValue: 0,
-            maxValue: 0,
-          });
+          .setProps({minValue: 0, maxValue: 0});
         break;
       
       case 'Blower': // Fan
-        this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the blower is on
+        this.service = [this.accessory.getService(this.platform.Service.Fan) || this.accessory.addService(this.platform.Service.Fan)];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the blower is on
           .on('get', this.getOn.bind(this))
           .on('set', this.setOn.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.RotationSpeed) // Speed of the blower
+        this.service[0].getCharacteristic(this.platform.Characteristic.RotationSpeed) // Speed of the blower
           .on('get', this.getFanSpeed.bind(this))
           .on('set', this.setFanSpeed.bind(this))
-          .setProps({
-            minValue: 0,
-            maxValue: 5,
-            minStep: 1,
-          });
+          .setProps({minValue: 0, maxValue: 5, minStep: 1});
         break;
       
       case 'Lights': // Lightbulb
-        this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the lights are on
+        this.service = [this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb)];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the lights are on
           .on('get', this.getOn.bind(this))
           .on('set', this.setOn.bind(this));
 
-        this.service.getCharacteristic(this.platform.Characteristic.Brightness) // Whether the lights are on
+        this.service[0].getCharacteristic(this.platform.Characteristic.Brightness) // Whether the lights are on
           .on('get', this.getBrightness.bind(this))
           .on('set', this.setBrightness.bind(this))
-          .setProps({
-            minValue: 0,
-            maxValue: 5,
-            minStep: 1,
-          });
+          .setProps({minValue: 0, maxValue: 5, minStep: 1});
         break;
       
       case 'Lock': // Lock Mechanism
-        this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
+        this.service = [this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.LockMechanism)];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
           .on('get', this.getCurLock.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
+        this.service[0].getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
           .on('get', this.getTargLock.bind(this))
           .on('set', this.setTargLock.bind(this));
         break;
       
+      case 'ModeSwitch': // Operation Mode Switch
+        this.service = [this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch)];
+        this.service.push(this.accessory.getService('Economy') || this.accessory.addService(this.platform.Service.Switch, 'Economy', accessory.context.device.deviceId + '-ECON'));
+        this.service.push(this.accessory.getService('Away') || this.accessory.addService(this.platform.Service.Switch, 'Away', accessory.context.device.deviceId + '-AWAY'));
+        this.service.push(this.accessory.getService('Week') || this.accessory.addService(this.platform.Service.Switch, 'Week', accessory.context.device.deviceId + '-WEEK'));
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, 'Normal');
+        this.service[1].setCharacteristic(this.platform.Characteristic.Name, 'Economy');
+        this.service[2].setCharacteristic(this.platform.Characteristic.Name, 'Away');
+        this.service[3].setCharacteristic(this.platform.Characteristic.Name, 'Week');
+        this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            const operMode = data.split('\r\n')[3].split(',')[2];
+            if (operMode === '0'){
+              callback(null, true);
+            } else {
+              callback(null, false);
+            }
+          })
+          .on('set', async (value, callback) => {
+            const client = new net.Socket();
+            try {
+              client.connect(9090, this.accessory.context.spaIp, () => {
+                try {
+                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+                  if (value as boolean) {
+                    client.write('W66:0\n');
+                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                  }
+                } catch {
+                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                  this.platform.log.warn('Failed to set characteristic for spa device');
+                  client.destroy();
+                  callback(null);
+                }
+              });
+            } catch {
+              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.platform.log.warn('Failed to set characteristic for spa device');
+              client.destroy();
+              callback(null);
+            }
+          });
+        this.service[1].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            const operMode = data.split('\r\n')[3].split(',')[2];
+            if (operMode === '1'){
+              callback(null, true);
+            } else {
+              callback(null, false);
+            }
+          })
+          .on('set', async (value, callback) => {
+            const client = new net.Socket();
+            try {
+              client.connect(9090, this.accessory.context.spaIp, () => {
+                try {
+                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+                  if (value as boolean) {
+                    client.write('W66:1\n');
+                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                  }
+                } catch {
+                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                  this.platform.log.warn('Failed to set characteristic for spa device');
+                  client.destroy();
+                  callback(null);
+                }
+              });
+            } catch {
+              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.platform.log.warn('Failed to set characteristic for spa device');
+              client.destroy();
+              callback(null);
+            }
+          });
+        this.service[2].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            const operMode = data.split('\r\n')[3].split(',')[2];
+            if (operMode === '2'){
+              callback(null, true);
+            } else {
+              callback(null, false);
+            }
+          })
+          .on('set', async (value, callback) => {
+            const client = new net.Socket();
+            try {
+              client.connect(9090, this.accessory.context.spaIp, () => {
+                try {
+                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+                  if (value as boolean) {
+                    client.write('W66:2\n');
+                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                  }
+                } catch {
+                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                  this.platform.log.warn('Failed to set characteristic for spa device');
+                  client.destroy();
+                  callback(null);
+                }
+              });
+            } catch {
+              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.platform.log.warn('Failed to set characteristic for spa device');
+              client.destroy();
+              callback(null);
+            }
+          });
+        this.service[3].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            const operMode = data.split('\r\n')[3].split(',')[2];
+            if (operMode === '3'){
+              callback(null, true);
+            } else {
+              callback(null, false);
+            }
+          })
+          .on('set', async (value, callback) => {
+            const client = new net.Socket();
+            try {
+              client.connect(9090, this.accessory.context.spaIp, () => {
+                try {
+                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+                  if (value as boolean) {
+                    client.write('W66:3\n');
+                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                  }
+                } catch {
+                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                  this.platform.log.warn('Failed to set characteristic for spa device');
+                  client.destroy();
+                  callback(null);
+                }
+              });
+            } catch {
+              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.platform.log.warn('Failed to set characteristic for spa device');
+              client.destroy();
+              callback(null);
+            }
+          });
+        break;
+      
       default: // Switch
-        this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
+        this.service = [this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch)];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
           .on('get', this.getOn.bind(this))
           .on('set', this.setOn.bind(this));
         break;
     }
-    //this.setupSocket();
   }
-
-  // you must call the callback function
-  // the first argument should be null if there were no errors
-  // the second argument should be the value to return
-  /*
-  client = new net.Socket();
-
-  setupSocket() {
-    this.client.connect(9090, this.accessory.context.spaIp, () => {
-      this.client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-    });
-
-    this.client.on('data', (data) => {
-      if (data.toString().split('\r\n')[0] === 'RF:') {
-        this.platform.log.debug(data.toString());
-        if (data.toString().split('\r\n')[12].split(',')[13] === '0') {
-          this.service.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 0);
-          this.service.updateCharacteristic(this.platform.Characteristic.LockTargetState, 0);
-        } else {
-          this.service.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 1);
-          this.service.updateCharacteristic(this.platform.Characteristic.LockTargetState, 1);
-        }
-      }
-    });
-  }*/
 
   ////////////////////////
   // FUNCTION - SPADATA //
@@ -193,16 +291,6 @@ export class SpaNETPlatformAccessory {
         isOn = data.split('\r\n')[4].split(',')[15] as unknown as boolean; // Will only be a '0' or '1'
         break;
       }
-      case 'ModeSwitch': {
-        const operMode = data.split('\r\n')[3].split(',')[2];
-        const operSwitch = this.accessory.displayName.slice(0, 4).toUpperCase();
-        if (operMode === operSwitch){
-          isOn = true; 
-        } else {
-          isOn = false; 
-        }
-        break;
-      }
       case 'PowerSwitch': {
         const powerMode = data.split('\r\n')[5].split(',')[11] as unknown as number;
         isOn = false;
@@ -212,7 +300,7 @@ export class SpaNETPlatformAccessory {
         break;
       }
       default: {
-        if (this.accessory.displayName === 'Clean'){
+        if (this.accessory.context.device.displayName === 'Clean'){
           isOn = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
         } else {
           const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
@@ -262,12 +350,6 @@ export class SpaNETPlatformAccessory {
               }
               break;
             }
-            case 'ModeSwitch': {
-              if (value as boolean){
-                client.write('W66:' + this.accessory.context.spaCommand + '\n');
-              }
-              break;
-            }
             case 'PowerSwitch': {
               if (value as boolean){
                 client.write('W63:1\n');
@@ -277,14 +359,14 @@ export class SpaNETPlatformAccessory {
               break;
             }
             default: {
-              if (this.accessory.displayName === 'Clean'){
+              if (this.accessory.context.device.displayName === 'Clean'){
                 const state = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
                 if (state !== value as boolean){
                   client.write('W12\n');
                 }
               } else {
                 let valueInt = value as number;
-                if (this.accessory.displayName === 'Sleep'){
+                if (this.accessory.context.device.displayName === 'Sleep'){
                   if (value){
                     valueInt = 96;
                   } else {

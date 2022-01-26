@@ -186,28 +186,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           deviceClass: 'ToggleSwitch',
         },
         {
-          deviceId: 'spanet.controlswitch.normalmode',
-          displayName: 'Normal',
+          deviceId: 'spanet.controlswitch.operationmode',
+          displayName: 'Operation Mode',
           deviceClass: 'ModeSwitch',
-          command: '0',
-        },
-        {
-          deviceId: 'spanet.controlswitch.econmode',
-          displayName: 'Economy',
-          deviceClass: 'ModeSwitch',
-          command: '1',
-        },
-        {
-          deviceId: 'spanet.controlswitch.awaymode',
-          displayName: 'Away',
-          deviceClass: 'ModeSwitch',
-          command: '2',
-        },
-        {
-          deviceId: 'spanet.controlswitch.weekmode',
-          displayName: 'Week',
-          deviceClass: 'ModeSwitch',
-          command: '3',
         },
         {
           deviceId: 'spanet.controlswitch.powersave',
