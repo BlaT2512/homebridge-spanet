@@ -189,43 +189,43 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           deviceId: 'spanet.controlswitch.normalmode',
           displayName: 'Normal',
           deviceClass: 'ModeSwitch',
-          command: 0,
+          command: '0',
         },
         {
           deviceId: 'spanet.controlswitch.econmode',
           displayName: 'Economy',
           deviceClass: 'ModeSwitch',
-          command: 1,
+          command: '1',
         },
         {
           deviceId: 'spanet.controlswitch.awaymode',
           displayName: 'Away',
           deviceClass: 'ModeSwitch',
-          command: 2,
+          command: '2',
         },
         {
           deviceId: 'spanet.controlswitch.weekmode',
           displayName: 'Week',
           deviceClass: 'ModeSwitch',
-          command: 3,
+          command: '3',
         },
         {
           deviceId: 'spanet.controlswitch.psoff',
           displayName: 'Power Save Off',
           deviceClass: 'PowerSwitch',
-          command: 0,
+          command: '0',
         },
         {
           deviceId: 'spanet.controlswitch.pslow',
           displayName: 'Power Save Low',
           deviceClass: 'PowerSwitch',
-          command: 1,
+          command: '1',
         },
         {
           deviceId: 'spanet.controlswitch.pshigh',
           displayName: 'Power Save High',
           deviceClass: 'PowerSwitch',
-          command: 2,
+          command: '2',
         },
       ];
 
@@ -257,9 +257,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           accessory.context.spaIp = this.globalSpaVars[1];
           accessory.context.spaSocket = this.globalSpaVars[2];
           accessory.context.spaMember = this.globalSpaVars[3];
-          if (device.deviceClass.includes('Switch')) {
-            accessory.context.spaCommand = device.command;
-          }
+          accessory.context.spaCommand = device.command;
           if (device.deviceClass === 'ToggleSwitch') {
             accessory.context.spaReadLine = device.readLine;
             accessory.context.spaReadBit = device.readBit;
