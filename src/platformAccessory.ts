@@ -35,7 +35,7 @@ export class SpaNETPlatformAccessory {
         break;
       
       case 'Lock': // Lock Mechanism
-        this.service = this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.LockMechanism);
+        this.service = this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch);
         break;
       
       default: // Switch
@@ -108,10 +108,10 @@ export class SpaNETPlatformAccessory {
         break;
       
       case 'Lock': // Lock Mechanism
-        this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .on('get', this.getCurLock.bind(this));
+        //this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
+        //  .on('get', this.getCurLock.bind(this));
         
-        this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
+        this.service.getCharacteristic(this.platform.Characteristic.On) // Whether the keypad lock should be unlocked/locked
           .on('get', this.getTargLock.bind(this))
           .on('set', this.setTargLock.bind(this));
         break;
@@ -617,21 +617,15 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  setTargLock(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  setTargLock(value: CharacteristicValue) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - characteristic value
-    try {
-      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
-        this.client.write('S21:0\n');
-      } else {
-        this.client.write('S21:2\n');
-      }
-      this.platform.log.debug('Set Characteristic LockTargState ->', value);
-    } catch {
-      this.platform.log.error('Failed to set characteristic for spa device ->', value);
-      callback(null);
+    if (value as number === 0){
+      this.client.write('S21:0\n');
+    } else {
+      this.client.write('S21:2\n');
     }
-    callback(null);
+    this.platform.log.debug('Set Characteristic LockTargState ->', value);
   }
 
   getCurLock(callback: CharacteristicGetCallback) {
