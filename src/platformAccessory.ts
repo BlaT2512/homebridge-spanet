@@ -600,7 +600,7 @@ export class SpaNETPlatformAccessory {
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    const number = await new Promise<number>((resolve) => {
+    return new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
@@ -622,7 +622,6 @@ export class SpaNETPlatformAccessory {
         }
       });
     });
-    return(number);
   }
 
   ////////////////////////////
@@ -633,7 +632,7 @@ export class SpaNETPlatformAccessory {
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    const number = await new Promise<number>((resolve) => {
+    return new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
@@ -655,7 +654,6 @@ export class SpaNETPlatformAccessory {
         }
       });
     });
-    return(number);
   }
 
   ////////////////////////////
@@ -666,7 +664,8 @@ export class SpaNETPlatformAccessory {
     // Input - value as string (string)
       
     // Connect to socket and write data
-    const number = await new Promise<void>((resolve) => {
+    return new Promise<void>((resolve) => {
+      resolve();
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
         client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
