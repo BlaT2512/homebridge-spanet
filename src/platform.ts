@@ -257,11 +257,10 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           accessory.context.spaIp = this.globalSpaVars[1];
           accessory.context.spaSocket = this.globalSpaVars[2];
           accessory.context.spaMember = this.globalSpaVars[3];
-          if (device.deviceClass === 'ModeSwitch' || device.deviceClass === 'PowerSwitch') {
+          if (device.deviceClass.includes('Switch')) {
             accessory.context.spaCommand = device.command;
           }
           if (device.deviceClass === 'ToggleSwitch') {
-            accessory.context.spaCommand = device.command;
             accessory.context.spaReadLine = device.readLine;
             accessory.context.spaReadBit = device.readBit;
             accessory.context.spaReadOff = device.readOff;
