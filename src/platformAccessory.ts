@@ -109,11 +109,11 @@ export class SpaNETPlatformAccessory {
       
       case 'Lock': // Lock Mechanism
         this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .on('get', this.getCurLock.bind(this));
+          .onGet(this.getCurLock.bind(this));
         
         this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
           .on('get', this.getTargLock.bind(this))
-          .on('set', this.setTargLock.bind(this));
+          .onSet(this.setTargLock.bind(this));
         break;
       
       default: // Switch
@@ -138,7 +138,7 @@ export class SpaNETPlatformAccessory {
 
     this.client.on('data', (data) => {
       if (data.toString().split('\r\n')[0] === 'RF:') {
-        console.log(data.toString());
+        this.platform.log.debug(data.toString());
         if (data.toString().split('\r\n')[12].split(',')[13] === '0') {
           this.service.updateCharacteristic(this.platform.Characteristic.LockCurrentState, 0);
           this.service.updateCharacteristic(this.platform.Characteristic.LockTargetState, 0);
@@ -617,30 +617,22 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  setTargLock(value, callback) {
+  setTargLock(value) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - characteristic value
-    try {
-      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
-        this.client.write('S21:0\n');
-      } else {
-        this.client.write('S21:2\n');
-      }
-      this.platform.log.debug('Set Characteristic LockTargState ->', value);
-    } catch {
-      this.platform.log.error('Failed to set characteristic for spa device ->', value);
-      callback(null);
+    if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
+      this.client.write('S21:0\n');
+    } else {
+      this.client.write('S21:2\n');
     }
-    callback(null);
+    this.platform.log.debug('Set Characteristic LockTargState ->', value);
   }
 
-  getCurLock(callback) {
+  getCurLock() {
     this.client.write('RF\n');
-    callback(null);
   }
 
-  getTargLock(callback) {
+  getTargLock() {
     this.client.write('RF\n');
-    callback(null);
   }
 }
