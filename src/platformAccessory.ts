@@ -620,13 +620,17 @@ export class SpaNETPlatformAccessory {
   setTargLock(value, callback) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - characteristic value
-      
-    if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
-      this.client.write('S21:0\n');
-    } else {
-      this.client.write('S21:2\n');
+    try {
+      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
+        this.client.write('S21:0\n');
+      } else {
+        this.client.write('S21:2\n');
+      }
+      this.platform.log.debug('Set Characteristic LockTargState ->', value);
+    } catch {
+      this.platform.log.error('Failed to set characteristic for spa device ->', value);
+      callback(null);
     }
-    this.platform.log.debug('Set Characteristic LockTargState ->', value);
     callback(null);
   }
 
