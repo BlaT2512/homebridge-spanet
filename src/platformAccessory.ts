@@ -666,21 +666,21 @@ export class SpaNETPlatformAccessory {
     // Connect to socket and write data
     return new Promise<void>((resolve) => {
       resolve();
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-      });
-      client.on('data', () => {
-        // Send command to set lock state
-        if (value === 0){
-          client.write('S21:0\n');
-        } else {
-          client.write('S21:2\n');
-        }
-        client.destroy();
-        this.platform.log.debug('Set Characteristic LockTargState ->', value);
-        resolve();
-      });
+      //const client = new net.Socket();
+      //client.connect(9090, this.accessory.context.spaIp, () => {
+      //  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+      //});
+      //client.on('data', () => {
+      //  // Send command to set lock state
+      //  if (value === 0){
+      //    client.write('S21:0\n');
+      //  } else {
+      //    client.write('S21:2\n');
+      //  }
+      //  client.destroy();
+      //  this.platform.log.debug('Set Characteristic LockTargState ->', value);
+      //  resolve();
+      //});
     });
   }
 }
