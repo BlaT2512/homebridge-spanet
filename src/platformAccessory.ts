@@ -595,12 +595,12 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETCURLOCK //
   ////////////////////////////
-  getCurLock() {
+  async getCurLock() {
     // getCurLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    return new Promise<number>((resolve) => {
+    return await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
@@ -627,12 +627,12 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETTARGLOCK //
   ////////////////////////////
-  getTargLock() {
+  async getTargLock() {
     // getTargLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    return new Promise<number>((resolve) => {
+    return await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
@@ -659,15 +659,15 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  setTargLock(value) {
+  async setTargLock(value) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
       
     // Connect to socket and write data
-    return new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       const client = new net.Socket();
-      client.connect(9090, '54.79.54.66', () => {
-        client.write('<connect--7889--5966>');
+      client.connect(9090, this.accessory.context.spaIp, () => {
+        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
       });
       client.on('data', () => {
         // Send command to set lock state
