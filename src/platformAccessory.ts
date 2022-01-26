@@ -595,7 +595,7 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETCURLOCK //
   ////////////////////////////
-  async getCurLock() {
+  getCurLock() {
     // getCurLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
@@ -627,7 +627,7 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETTARGLOCK //
   ////////////////////////////
-  async getTargLock() {
+  getTargLock() {
     // getTargLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
@@ -659,7 +659,7 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value) {
+  setTargLock(value) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
       
