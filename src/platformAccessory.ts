@@ -109,11 +109,11 @@ export class SpaNETPlatformAccessory {
       
       case 'Lock': // Lock Mechanism
         this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .onGet(this.getCurLock.bind(this));
+          .on('get', this.getCurLock.bind(this));
         
         this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
           .on('get', this.getTargLock.bind(this))
-          .onSet(this.setTargLock.bind(this));
+          .on('get', this.setTargLock.bind(this));
         break;
       
       default: // Switch
@@ -617,15 +617,22 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  setTargLock(value) {
+  setTargLock(value, callback) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - characteristic value
-    if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
-      this.client.write('S21:0\n');
-    } else {
-      this.client.write('S21:2\n');
+    try {
+      if (value === this.platform.Characteristic.LockTargetState.UNSECURED){
+        this.client.write('S21:0\n');
+      } else {
+        this.client.write('S21:2\n');
+      }
+      this.platform.log.debug('Set Characteristic LockTargState ->', value);
+    } catch {
+      this.platform.log.error('Failed to set characteristic for spa device ->', value);
+      callback(null);
     }
-    this.platform.log.debug('Set Characteristic LockTargState ->', value);
+    this.platform.log.debug(callback);
+    callback(null);
   }
 
   getCurLock() {
