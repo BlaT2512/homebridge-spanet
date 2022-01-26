@@ -109,11 +109,11 @@ export class SpaNETPlatformAccessory {
       
       case 'Lock': // Lock Mechanism
         this.service.getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .onGet(this.getCurLock.bind(this));
+          .on('get', this.getCurLock.bind(this));
         
         this.service.getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
-          .onGet(this.getTargLock.bind(this))
-          .onSet(this.setTargLock.bind(this));
+          .on('get', this.getTargLock.bind(this))
+          .on('set', this.setTargLock.bind(this));
         break;
       
       default: // Switch
@@ -595,12 +595,12 @@ export class SpaNETPlatformAccessory {
   ////////////////////////////
   // FUNCTION - GETCURLOCK //
   ////////////////////////////
-  async getCurLock() {
+  async getCurLock(callback) {
     // getCurLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    return new Promise<number>((resolve) => {
+    const value = await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
@@ -622,17 +622,18 @@ export class SpaNETPlatformAccessory {
         }
       });
     });
+    callback(null, value);
   }
 
   ////////////////////////////
   // FUNCTION - GETTARGLOCK //
   ////////////////////////////
-  async getTargLock() {
+  async getTargLock(callback) {
     // getTargLock - Get the current lock state for the keypad lock
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    return new Promise<number>((resolve) => {
+    const value = await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
@@ -654,17 +655,18 @@ export class SpaNETPlatformAccessory {
         }
       });
     });
+    callback(null, value);
   }
 
   ////////////////////////////
   // FUNCTION - SETTARGLOCK //
   ////////////////////////////
-  async setTargLock(value) {
+  async setTargLock(value, callback) {
     // setTargLock - Set the target lock state for the keypad lock
     // Input - value as string (string)
       
     // Connect to socket and write data
-    return await new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve) => {
       const client = new net.Socket();
       client.connect(9090, this.accessory.context.spaIp, () => {
         client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
@@ -681,5 +683,6 @@ export class SpaNETPlatformAccessory {
         resolve();
       });
     });
+    callback(null);
   }
 }
