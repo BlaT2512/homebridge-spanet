@@ -95,7 +95,8 @@ export class SpaNETPlatformAccessory {
           .on('get', async (callback) => {
             const data = await this.spaData();
             const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === '0'){
+            this.platform.log.warn(operMode);
+            if (operMode === 'NORM'){
               callback(null, true);
             } else {
               callback(null, false);
@@ -131,7 +132,7 @@ export class SpaNETPlatformAccessory {
           .on('get', async (callback) => {
             const data = await this.spaData();
             const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === '1'){
+            if (operMode === 'ECON'){
               callback(null, true);
             } else {
               callback(null, false);
@@ -167,7 +168,7 @@ export class SpaNETPlatformAccessory {
           .on('get', async (callback) => {
             const data = await this.spaData();
             const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === '2'){
+            if (operMode === 'AWAY'){
               callback(null, true);
             } else {
               callback(null, false);
@@ -203,7 +204,7 @@ export class SpaNETPlatformAccessory {
           .on('get', async (callback) => {
             const data = await this.spaData();
             const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === '3'){
+            if (operMode === 'WEEK'){
               callback(null, true);
             } else {
               callback(null, false);
