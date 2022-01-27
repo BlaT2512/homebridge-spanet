@@ -33,6 +33,10 @@ Here is the things you can control using this plugin through HomeKit:
 * Turn on and off power saving mode (will set to power save low mode)
 * Turn on and off sleep timer 1 & 2 (uses already set configuration)
 
+<p align="center">
+  <img src="extras/homekitspa-iphoness.PNG" width="300">
+</p>
+
 # Known Issues
 In the current release (v1.0) the following bugs have been recorded:
 * Turning on and off the keypad lock or jets will complete this action but HomeKit may be stuck loading trying to turn it on or off (closing and opening the app will then show it's new state properly)
