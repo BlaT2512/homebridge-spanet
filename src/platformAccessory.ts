@@ -360,7 +360,7 @@ export class SpaNETPlatformAccessory {
         if (this.accessory.context.device.displayName === 'Clean'){
           isOn = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
         } else {
-          const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
+          const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number;
           if (state === this.accessory.context.spaReadOff){
             isOn = false;
           } else {
@@ -422,15 +422,11 @@ export class SpaNETPlatformAccessory {
                   client.write('W12\n');
                 }
               } else {
-                let valueInt = value as number;
-                if (this.accessory.context.device.displayName.includes('Sleep Timer')){
-                  if (value){
-                    valueInt = 96;
-                  } else {
-                    valueInt = 128;
-                  }
+                if (value as boolean){
+                  client.write(this.accessory.context.spaCommand + '96\n');
+                } else {
+                  client.write(this.accessory.context.spaCommand + '128\n');
                 }
-                client.write(this.accessory.context.spaCommand + valueInt + '\n');
               }
               break;
             }
