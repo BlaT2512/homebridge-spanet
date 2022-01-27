@@ -91,7 +91,7 @@ export class SpaNETPlatformAccessory {
           });
         this.service[0].getCharacteristic(this.platform.Characteristic.ValveType)
           .on('get', (callback) => {
-            callback(null, this.platform.Characteristic.ValveType.GENERIC_VALVE);
+            callback(null, this.platform.Characteristic.ValveType.SHOWER_HEAD);
           });
         break;
       
