@@ -96,6 +96,7 @@ export class SpaNETPlatformAccessory {
         this.service[0].getCharacteristic(this.platform.Characteristic.SetDuration) // How long the timeout for jet is
           .on('get', async (callback) => {
             const data = await this.spaData();
+            this.platform.log.debug('Get Characteristic JetTimeout ->', (data.split('\r\n')[5].split(',')[21] as unknown as number)*60);
             callback(null, (data.split('\r\n')[5].split(',')[21] as unknown as number)*60);
           })
           .on('set', async (value, callback) => {
@@ -106,7 +107,7 @@ export class SpaNETPlatformAccessory {
                   client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
                   client.write('W74:' + (value as number/60) as unknown as string + '\n');
                   client.destroy();
-                  this.platform.log.debug('Set Characteristic JetTimeout ->', value);
+                  this.platform.log.debug('Set Characteristic JetTimeout ->', (value as number/60) as unknown as string);
                   callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
