@@ -62,14 +62,13 @@ export class SpaNETPlatformAccessory {
                 try {
                   client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
                   if (value as boolean) {
-                    if (value) {
-                      client.write(this.accessory.context.spaCommand + '1\n');
-                    } else {
-                      client.write(this.accessory.context.spaCommand + '0\n');
-                    }
-                    client.destroy();
-                    callback(null);
+                    client.write(this.accessory.context.spaCommand + '1\n');
+                  } else {
+                    client.write(this.accessory.context.spaCommand + '0\n');
                   }
+                  client.destroy();
+                  this.platform.log.debug('Set Characteristic Pump Active ->', value);
+                  callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
                   this.platform.log.warn('Failed to set characteristic for spa device');
@@ -91,7 +90,7 @@ export class SpaNETPlatformAccessory {
           });
         this.service[0].getCharacteristic(this.platform.Characteristic.ValveType)
           .on('get', (callback) => {
-            callback(null, this.platform.Characteristic.ValveType.SHOWER_HEAD);
+            callback(null, 2);
           });
         break;
       
