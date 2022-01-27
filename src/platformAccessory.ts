@@ -95,7 +95,6 @@ export class SpaNETPlatformAccessory {
           .on('get', async (callback) => {
             const data = await this.spaData();
             const operMode = data.split('\r\n')[3].split(',')[2];
-            this.platform.log.warn(operMode);
             if (operMode === 'NORM'){
               callback(null, true);
             } else {
@@ -113,6 +112,8 @@ export class SpaNETPlatformAccessory {
                     this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                    client.destroy();
+                    callback(null);
                   }
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
@@ -149,6 +150,8 @@ export class SpaNETPlatformAccessory {
                     this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                    client.destroy();
+                    callback(null);
                   }
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
@@ -185,6 +188,8 @@ export class SpaNETPlatformAccessory {
                     this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                    client.destroy();
+                    callback(null);
                   }
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
@@ -221,6 +226,8 @@ export class SpaNETPlatformAccessory {
                     this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                    client.destroy();
+                    callback(null);
                   }
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
