@@ -479,7 +479,7 @@ export class SpaNETPlatformAccessory {
       }
     }
 
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    this.platform.log.debug('Get Characteristic HeaterState ->', currentValue);
     callback(null, currentValue);
   }
 
@@ -501,7 +501,7 @@ export class SpaNETPlatformAccessory {
       currentValue = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
     }
 
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    this.platform.log.debug('Get Characteristic HeaterState ->', currentValue);
     callback(null, currentValue);
   }
 
@@ -559,7 +559,7 @@ export class SpaNETPlatformAccessory {
     const currentValueInt = String(currentValueString).slice(0, -1) + '.' + String(currentValueString).slice(-1);
     const currentValue = parseFloat(currentValueInt);
 
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    this.platform.log.debug('Get Characteristic WaterTemp ->', currentValue);
     callback(null, currentValue);
   }
 
@@ -578,7 +578,7 @@ export class SpaNETPlatformAccessory {
     const currentValueInt = String(currentValueString).slice(0, -1) + '.' + String(currentValueString).slice(-1);
     const currentValue = parseFloat(currentValueInt);
 
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    this.platform.log.debug('Get Characteristic SetTemp ->', currentValue);
     callback(null, currentValue);
   }
 
@@ -627,7 +627,7 @@ export class SpaNETPlatformAccessory {
     // Parse the data to check the blower speed
     const currentValue = data.split('\r\n')[5].split(',')[2] as unknown as number;
 
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    this.platform.log.debug('Get Characteristic FanSpeed ->', currentValue);
     callback(null, currentValue);
   }
 
@@ -683,7 +683,7 @@ export class SpaNETPlatformAccessory {
     // Parse the data to check the light brightness
     const currentValue = data.split('\r\n')[5].split(',')[3] as unknown as number;
 
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
+    this.platform.log.debug('Get Characteristic LightBrightness ->', currentValue);
     callback(null, currentValue);
   }
 
@@ -733,7 +733,6 @@ export class SpaNETPlatformAccessory {
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    this.platform.log.debug('Starting Get Characteristic LockTargState ->');
     const value = await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
@@ -747,7 +746,7 @@ export class SpaNETPlatformAccessory {
           client.destroy();
           // Parse the data to check the lock state
           const rawValue = data.toString().split('\r\n')[12].split(',')[13];
-          this.platform.log.debug('Get Characteristic LockTargState ->', rawValue);
+          this.platform.log.debug('Get Characteristic LockState ->', rawValue);
           if (rawValue === '0'){
             resolve(0);
           } else {
@@ -767,7 +766,6 @@ export class SpaNETPlatformAccessory {
     // Returns - const currentValue (number)
 
     // Call function to get latest data from spa
-    this.platform.log.debug('Starting Get Characteristic LockTargState ->');
     const value = await new Promise<number>((resolve) => {
       // Connect to the websocket of the spa and request data
       const client = new net.Socket();
@@ -781,7 +779,7 @@ export class SpaNETPlatformAccessory {
           client.destroy();
           // Parse the data to check the lock state
           const rawValue = data.toString().split('\r\n')[12].split(',')[13];
-          this.platform.log.debug('Get Characteristic LockTargState ->', rawValue);
+          this.platform.log.debug('Get Characteristic LockState ->', rawValue);
           if (rawValue === '0'){
             resolve(0);
           } else {
