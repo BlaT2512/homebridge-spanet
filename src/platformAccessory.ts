@@ -105,9 +105,10 @@ export class SpaNETPlatformAccessory {
               client.connect(9090, this.accessory.context.spaIp, () => {
                 try {
                   client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  client.write('W74:' + (value as number/60) as unknown as string + '\n');
+                  const newval = (value as number/60) as unknown as string;
+                  client.write('W74:' + newval + '\n');
                   client.destroy();
-                  this.platform.log.debug('Set Characteristic JetTimeout ->', (value as number/60) as unknown as string);
+                  this.platform.log.debug('Set Characteristic JetTimeout ->', newval);
                   callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
@@ -360,9 +361,15 @@ export class SpaNETPlatformAccessory {
       // Wait for the result to be recieved from the spa
       client.on('data', (data) => {
         if (data.toString().split('\r\n')[0] === 'RF:') {
-          client.destroy();
-          // Return the RF data
-          resolve(data.toString());
+          try {
+            // Check the read was fine by reading a random line
+            data.toString().split('\r\n')[12].split(',')[13];
+            client.destroy();
+            resolve(data.toString());
+          } catch {
+            // Bad/malformed read, get a new read
+            client.write('RF\n');
+          }
         }
       });
     });
