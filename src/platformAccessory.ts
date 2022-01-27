@@ -41,8 +41,58 @@ export class SpaNETPlatformAccessory {
           .setProps({ minValue: 5, maxValue: 41, minStep: 0.2});
         
         this.service[0].getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits) // Temperature units of the heater
-          .on('get', this.getUnits.bind(this))
+          .on('get', (callback) => {
+            callback(null, 0);
+          })
           .setProps({minValue: 0, maxValue: 0});
+        break;
+      
+      case 'Valve': // Jet
+        this.service = [this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve)];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.Active) // Whether the jet is on
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            callback(null, data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number);
+          })
+          .on('set', async (value, callback) => {
+            const client = new net.Socket();
+            try {
+              client.connect(9090, this.accessory.context.spaIp, () => {
+                try {
+                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+                  if (value as boolean) {
+                    if (value) {
+                      client.write(this.accessory.context.spaCommand + '1\n');
+                    } else {
+                      client.write(this.accessory.context.spaCommand + '0\n');
+                    }
+                    client.destroy();
+                    callback(null);
+                  }
+                } catch {
+                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                  this.platform.log.warn('Failed to set characteristic for spa device');
+                  client.destroy();
+                  callback(null);
+                }
+              });
+            } catch {
+              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.platform.log.warn('Failed to set characteristic for spa device');
+              client.destroy();
+              callback(null);
+            }
+          });
+        this.service[0].getCharacteristic(this.platform.Characteristic.InUse) // Whether the jet is on
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            callback(null, data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number);
+          });
+        this.service[0].getCharacteristic(this.platform.Characteristic.ValveType)
+          .on('get', (callback) => {
+            callback(null, this.platform.Characteristic.ValveType.GENERIC_VALVE);
+          });
         break;
       
       case 'Blower': // Fan
@@ -564,20 +614,6 @@ export class SpaNETPlatformAccessory {
       client.destroy();
       callback(null);
     }
-  }
-
-  /////////////////////////
-  // FUNCTION - GETUNITS //
-  /////////////////////////
-  async getUnits(callback: CharacteristicGetCallback) {
-    // getUnits - Get display units being used by the spa
-    // Returns - const currentValue (number)
-
-    // Units can only be celcius
-    const currentValue = 0;
-
-    this.platform.log.debug('Get Characteristic On ->', currentValue);
-    callback(null, currentValue);
   }
 
   ////////////////////////////

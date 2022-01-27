@@ -141,7 +141,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
         {
           deviceId: 'spanet.pump.pump2',
           displayName: 'Jet 1',
-          deviceClass: 'ToggleSwitch',
+          deviceClass: 'Valve',
           command: 'S23:',
           readBit: 20,
           readLine: 4,
@@ -150,7 +150,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
         {
           deviceId: 'spanet.pump.pump3',
           displayName: 'Jet 2',
-          deviceClass: 'ToggleSwitch',
+          deviceClass: 'Valve',
           command: 'S24:',
           readBit: 21,
           readLine: 4,
@@ -231,7 +231,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           if (device.command !== null) {
             accessory.context.spaCommand = device.command;
           }
-          if (device.deviceClass === 'ToggleSwitch') {
+          if (device.readLine !== null) {
             accessory.context.spaReadLine = device.readLine;
             accessory.context.spaReadBit = device.readBit;
             accessory.context.spaReadOff = device.readOff;
