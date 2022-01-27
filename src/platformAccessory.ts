@@ -161,9 +161,11 @@ export class SpaNETPlatformAccessory {
                     this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                    client.destroy();
-                    callback(null);
+                  } else {
+                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                   }
+                  client.destroy();
+                  callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
                   this.platform.log.warn('Failed to set characteristic for spa device');
@@ -199,9 +201,11 @@ export class SpaNETPlatformAccessory {
                     this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                    client.destroy();
-                    callback(null);
+                  } else {
+                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                   }
+                  client.destroy();
+                  callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
                   this.platform.log.warn('Failed to set characteristic for spa device');
@@ -237,9 +241,11 @@ export class SpaNETPlatformAccessory {
                     this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                    client.destroy();
-                    callback(null);
+                  } else {
+                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
                   }
+                  client.destroy();
+                  callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
                   this.platform.log.warn('Failed to set characteristic for spa device');
@@ -275,9 +281,11 @@ export class SpaNETPlatformAccessory {
                     this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
                     this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                    client.destroy();
-                    callback(null);
+                  } else {
+                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
                   }
+                  client.destroy();
+                  callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
                   this.platform.log.warn('Failed to set characteristic for spa device');
@@ -361,8 +369,6 @@ export class SpaNETPlatformAccessory {
           isOn = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
         } else {
           const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
-          console.log(state);
-          this.platform.log.debug(this.accessory.context.spaReadOff);
           if (state === this.accessory.context.spaReadOff){
             isOn = false;
           } else {
