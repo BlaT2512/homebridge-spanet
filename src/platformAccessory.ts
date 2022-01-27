@@ -8,6 +8,7 @@ import { SpaNETHomebridgePlatform } from './platform';
 ////////////////////////
 export class SpaNETPlatformAccessory {
   private service: Array<Service>;
+  private timer: Date = new Date();
 
   constructor(
     private readonly platform: SpaNETHomebridgePlatform,
@@ -88,10 +89,40 @@ export class SpaNETPlatformAccessory {
             const data = await this.spaData();
             callback(null, data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number);
           });
-        this.service[0].getCharacteristic(this.platform.Characteristic.ValveType)
+        this.service[0].getCharacteristic(this.platform.Characteristic.ValveType) // Type of valve this is
           .on('get', (callback) => {
             callback(null, 2);
           });
+        this.service[0].getCharacteristic(this.platform.Characteristic.SetDuration) // How long the timeout for jet is
+          .on('get', async (callback) => {
+            const data = await this.spaData();
+            callback(null, (data.split('\r\n')[5].split(',')[21] as unknown as number)*60);
+          })
+          .on('set', async (value, callback) => {
+            const client = new net.Socket();
+            try {
+              client.connect(9090, this.accessory.context.spaIp, () => {
+                try {
+                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
+                  client.write('W74:' + (value as number/60) as unknown as string + '\n');
+                  client.destroy();
+                  this.platform.log.debug('Set Characteristic JetTimeout ->', value);
+                  callback(null);
+                } catch {
+                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+                  this.platform.log.warn('Failed to set characteristic for spa device');
+                  client.destroy();
+                  callback(null);
+                }
+              });
+            } catch {
+              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
+              this.platform.log.warn('Failed to set characteristic for spa device');
+              client.destroy();
+              callback(null);
+            }
+          })
+          .setProps({ minValue: 600, maxValue: 3600, minStep: 60});
         break;
       
       case 'Blower': // Fan
