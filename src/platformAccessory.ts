@@ -361,6 +361,8 @@ export class SpaNETPlatformAccessory {
           isOn = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
         } else {
           const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number;
+          console.log(state);
+          this.platform.log.debug(this.accessory.context.spaReadOff);
           if (state === this.accessory.context.spaReadOff){
             isOn = false;
           } else {
