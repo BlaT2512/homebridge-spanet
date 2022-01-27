@@ -423,7 +423,7 @@ export class SpaNETPlatformAccessory {
                 }
               } else {
                 let valueInt = value as number;
-                if (this.accessory.context.device.displayName === 'Sleep'){
+                if (this.accessory.context.device.displayName.includes('Sleep Timer')){
                   if (value){
                     valueInt = 96;
                   } else {
