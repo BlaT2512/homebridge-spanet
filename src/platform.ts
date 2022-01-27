@@ -173,7 +173,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           command: 'W67:',
           readBit: 14,
           readLine: 5,
-          readOff: 128,
+          readOff: '128',
         },
         {
           deviceId: 'spanet.controlswitch.sleeptimer2',
@@ -182,7 +182,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           command: 'W70:',
           readBit: 15,
           readLine: 5,
-          readOff: 128,
+          readOff: '128',
         },
         {
           deviceId: 'spanet.lockmechanism.keypadlock',
