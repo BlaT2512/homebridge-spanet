@@ -23,29 +23,6 @@
         "type": "string",
         "required": true,
         "description": "Name of the spa as seen in the SpaLINK app"
-      },
-      "lightMode": {
-        "title": "Light Mode",
-        "type": "integer",
-        "default": 0,
-        "oneOf": [
-          { "title": "White", "enum": [0] },
-          { "title": "Colour", "enum": [1] },
-          { "title": "Fade", "enum": [2] },
-          { "title": "Step", "enum": [3] },
-          { "title": "Party", "enum": [4] }
-        ],
-        "required": true,
-        "description": "Default light mode when turning on with light accessory"
-      },
-      "lightBrightness": {
-        "title": "Light Brightness",
-        "type": "integer",
-        "default": 5,
-        "minimum": 1,
-        "maximum": 5,
-        "required": true,
-        "description": "Default light brightness when turning on with light accessory"
       }
     }
   },
@@ -61,16 +38,6 @@
         }
       ]
     },
-    "spaName",
-    {
-      "type": "fieldset",
-      "title": "Lights",
-      "expandable": false,
-      "expanded": true,
-      "items": [
-        "lightMode",
-        "lightBrightness"
-      ]
-    }
+    "spaName"
   ]
 }

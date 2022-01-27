@@ -45,3 +45,7 @@ Here are the features planned for v1.1 or future releases:
 * Give option for default power save mode in Homebridge settings (LOW or HIGH)
 * Allow controlling of lights hue/saturation/colour in HomeKit
 * Show how long jets have left before they timeout when they are on
+* Allow multiple spa's to be exposed to HomeKit
+* Upgrade code to new Promise-based `onGet` and `onSet` methods
+* Encrypt password automatically instead of having user do it beforehand
+* Verify plugin on Homebridge
