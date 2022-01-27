@@ -8,7 +8,7 @@ Homebridge SpaNET is a [Homebridge](https://github.com/homebridge/homebridge) pl
 # Installation
 Please ensure you are running the latest version of Homebridge (heres how to [install](https://github.com/homebridge/homebridge/wiki) if you haven't already). To install this plugin, run the following command on your Homebridge hosts command line/terminal application:
 ```
-npm i -g homebridge-spanet
+npm i -g https://github.com/BlaT2512/homebridge-spanet
 ```
 NOTE: For best performance, and due to the number of accessories this device exposes it is recommended you run this plugin on a child bridge (Homebridge Web Interface > Plugins > homebridge-spanet > Bridge Settings).
 
