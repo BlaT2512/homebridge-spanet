@@ -8,7 +8,6 @@ import { SpaNETHomebridgePlatform } from './platform';
 ////////////////////////
 export class SpaNETPlatformAccessory {
   private service: Array<Service>;
-  private timer: Date = new Date();
 
   constructor(
     private readonly platform: SpaNETHomebridgePlatform,
@@ -68,7 +67,7 @@ export class SpaNETPlatformAccessory {
                     client.write(this.accessory.context.spaCommand + '0\n');
                   }
                   client.destroy();
-                  this.platform.log.debug('Set Characteristic Pump Active ->', value);
+                  this.platform.log.debug('Set Characteristic PumpActive ->', value);
                   callback(null);
                 } catch {
                   this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
@@ -583,7 +582,7 @@ export class SpaNETPlatformAccessory {
       callback(null);
     }
 
-    this.platform.log.debug('Set Characteristic On ->', value);
+    this.platform.log.debug('Set Characteristic HeaterState ->', value);
     callback(null);
   }
 
@@ -640,7 +639,7 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set temperature
           const valueSend = (value as number * 10).toFixed().padStart(3, '0');
-          this.platform.log.debug('Set Characteristic On ->', valueSend);
+          this.platform.log.debug('Set Characteristic TargTemp ->', valueSend);
           client.write('W40:' + valueSend + '\n');
           callback(null);
         } catch {
@@ -710,7 +709,7 @@ export class SpaNETPlatformAccessory {
       callback(null);
     }
 
-    this.platform.log.debug('Set Characteristic On ->', value);
+    this.platform.log.debug('Set Characteristic FanSpeed ->', value);
     callback(null);
   }
 
@@ -764,7 +763,7 @@ export class SpaNETPlatformAccessory {
       callback(null);
     }
 
-    this.platform.log.debug('Set Characteristic On ->', value);
+    this.platform.log.debug('Set Characteristic LightBrightness ->', value);
     callback(null);
   }
 
@@ -867,7 +866,7 @@ export class SpaNETPlatformAccessory {
       callback(null);
     }
   
-    this.platform.log.debug('Set Characteristic On ->', value);
+    this.platform.log.debug('Set Characteristic LockState ->', value);
     callback(null);
   }
 }
