@@ -3,6 +3,9 @@
 </p>
 
 # homebridge-spanet
+<a href="https://www.npmjs.com/package/homebridge-spanet"><img src="https://img.shields.io/npm/v/homebridge-spanet" title="npm"></a>
+<a href="https://www.npmjs.com/package/homebridge-spanet"><img src="https://badgen.net/badge/icon/typescript?icon=typescript&label" title="npm"></a>
+
 Homebridge SpaNET is a [Homebridge](https://github.com/homebridge/homebridge) plugin for controlling Australian/NZ spas with a SpaNET WiFi module. Spas that can be controlled with the SpaLINK app can be used. The plugin for Homebridge allows Homekit integration to control your spa, allowing you to integrate it into your smart home and control via routines/voice commands or however you like.
 
 # Installation
