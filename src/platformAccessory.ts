@@ -507,7 +507,7 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the heater state
-    // 0 - OFF, 1 - HEATING, 2 - COOLING
+    // 1 - OFF, 2 - HEATING, 3 - COOLING
     let currentValue = data.split('\r\n')[4].split(',')[13] as unknown as number; // Will only be a '0' or '1'
     if (currentValue === 1){
       // This means the heater is on, but it could be heating or cooling
@@ -522,7 +522,7 @@ export class SpaNETPlatformAccessory {
     }
 
     this.platform.log.debug('Get Characteristic HeaterState ->', currentValue);
-    callback(null, currentValue);
+    callback(null, currentValue+1);
   }
 
   /////////////////////////////
@@ -535,13 +535,8 @@ export class SpaNETPlatformAccessory {
     // Call function to get latest data from spa
     const data = await this.spaData();
     // Parse the data to check the heater state
-    // 0 - OFF, 1 - HEATING, 2 - COOLING, 3 - AUTO
+    // 0 - AUTO, 1 - HEATING, 2 - COOLING
     let currentValue = data.split('\r\n')[6].split(',')[27] as unknown as number;
-    if (currentValue === 0){
-      currentValue = this.platform.Characteristic.TargetHeatingCoolingState.AUTO;
-    } else if (currentValue === 3){
-      currentValue = this.platform.Characteristic.TargetHeatingCoolingState.OFF;
-    }
 
     this.platform.log.debug('Get Characteristic HeaterState ->', currentValue);
     callback(null, currentValue);
@@ -562,11 +557,6 @@ export class SpaNETPlatformAccessory {
           client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
           // Send command to set mode
           let valueInt = value as string;
-          if (value === this.platform.Characteristic.TargetHeatingCoolingState.OFF){
-            valueInt = '3';
-          } else if (value === this.platform.Characteristic.TargetHeatingCoolingState.AUTO){
-            valueInt = '0';
-          }
           client.write('W99:' + valueInt + '\n');
         } catch {
           this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
