@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge SpaNET",
   "name": "homebridge-spanet",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Homebridge plugin to control Australian SpaNET spa's with the WiFi SpaLINK plugin module",
   "license": "Apache-2.0",
   "repository": {
@@ -26,11 +26,12 @@
     "homebridge-plugin"
   ],
   "dependencies": {
-    "net": "^1.0.2",
-    "request": "^2.88.2"
+    "axios": "^1.0.0",
+    "axios-cache-interceptor": "^1.0.0",
+    "axios-rate-limit": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^14.14.6",
+    "@types/node": "^14.18.63",
     "@typescript-eslint/eslint-plugin": "^4.6.1",
     "@typescript-eslint/parser": "^4.6.1",
     "eslint": "^7.13.0",
@@ -38,7 +39,7 @@
     "nodemon": "^2.0.6",
     "rimraf": "^3.0.2",
     "ts-node": "^9.0.0",
-    "typescript": "^4.0.5"
+    "typescript": "^4.7.0"
   },
   "homepage": "https://github.com/BlaT2512/homebridge-spanet#readme",
   "author": "Blake Tourneur"

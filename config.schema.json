@@ -6,17 +6,17 @@
   "schema": {
     "type": "object",
     "properties": {
-      "username": {
-        "title": "Username",
+      "email": {
+        "title": "Email",
         "type": "string",
         "required": true,
-        "description": "Username which you use to log into the SpaLINK app"
+        "description": "Email which you use to log into the SpaLINK app"
       },
       "password": {
         "title": "Password",
         "type": "string",
         "required": true,
-        "description": "IMPORTANT NOTE: This is not your regular password into the SpaNET app, see [GitHub repository](https://github.com/BlaT2512/homebridge-spanet) to learn how to obtain your encrypted password"
+        "description": "Password of your SpaLINK app account"
       },
       "spaName": {
         "title": "Spa Name",
@@ -31,7 +31,7 @@
       "type": "flex",
       "flex-flow": "row wrap",
       "items": [
-        "username",
+        "email",
         {
           "key": "password",
           "type": "password"

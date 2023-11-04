@@ -1,6 +1,4 @@
-/* eslint-disable max-len */
-import net = require('net');
-import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SpaNETHomebridgePlatform } from './platform';
 
 ////////////////////////
@@ -23,840 +21,752 @@ export class SpaNETPlatformAccessory {
     // Create the service for this accessory and register GET/SET handlers
     switch(accessory.context.device.deviceClass) {
       case 'Thermostat': // Heater Cooler
-        this.service = [this.accessory.getService(this.platform.Service.Thermostat) || this.accessory.addService(this.platform.Service.Thermostat)];
+        this.service = [
+          this.accessory.getService(this.platform.Service.Thermostat) ||
+          this.accessory.addService(this.platform.Service.Thermostat),
+        ];
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
-        this.service[0].getCharacteristic(this.platform.Characteristic.CurrentHeaterCoolerState) // Whether the heater is currently heating/cooling
-          .on('get', this.getCurState.bind(this));
+        this.service[0].getCharacteristic(this.platform.Characteristic.CurrentHeatingCoolingState) // Whether spa is heating/cooling
+          .onGet(this.getCurState.bind(this));
         
-        this.service[0].getCharacteristic(this.platform.Characteristic.TargetHeaterCoolerState) // Whether the heater should be heating/cooling
-          .on('get', this.getTargState.bind(this))
-          .on('set', this.setTargState.bind(this));
+        this.service[0].getCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState) // Whether spa should be heating/cooling
+          .onGet(this.getTargState.bind(this))
+          .onSet(this.setTargState.bind(this));
         
         this.service[0].getCharacteristic(this.platform.Characteristic.CurrentTemperature) // Current temperature of the spa
-          .on('get', this.getCurTemp.bind(this));
+          .onGet(this.getCurTemp.bind(this));
         
         this.service[0].getCharacteristic(this.platform.Characteristic.TargetTemperature) // Target temperature of the spa
-          .on('get', this.getTargTemp.bind(this))
-          .on('set', this.setTargTemp.bind(this))
+          .onGet(this.getTargTemp.bind(this))
+          .onSet(this.setTargTemp.bind(this))
           .setProps({ minValue: 5, maxValue: 41, minStep: 0.2});
         
         this.service[0].getCharacteristic(this.platform.Characteristic.TemperatureDisplayUnits) // Temperature units of the heater
-          .on('get', (callback) => {
-            callback(null, 0);
+          .onGet(async() => {
+            return 0;
           })
           .setProps({minValue: 0, maxValue: 0});
         break;
       
       case 'Valve': // Jet
-        this.service = [this.accessory.getService(this.platform.Service.Valve) || this.accessory.addService(this.platform.Service.Valve)];
+        this.service = [
+          this.accessory.getService(this.platform.Service.Valve) ||
+          this.accessory.addService(this.platform.Service.Valve),
+        ];
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
         this.service[0].getCharacteristic(this.platform.Characteristic.Active) // Whether the jet is on
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            callback(null, data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number);
-          })
-          .on('set', async (value, callback) => {
-            const client = new net.Socket();
-            try {
-              client.connect(9090, this.accessory.context.spaIp, () => {
-                try {
-                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  if (value as boolean) {
-                    client.write(this.accessory.context.spaCommand + '1\n');
-                  } else {
-                    client.write(this.accessory.context.spaCommand + '0\n');
-                  }
-                  client.destroy();
-                  this.platform.log.debug('Set Characteristic PumpActive ->', value);
-                  callback(null);
-                } catch {
-                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-                  this.platform.log.warn('Failed to set characteristic for spa device');
-                  client.destroy();
-                  callback(null);
-                }
-              });
-            } catch {
-              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-              this.platform.log.warn('Failed to set characteristic for spa device');
-              client.destroy();
-              callback(null);
-            }
-          });
+          .onGet(this.getOn.bind(this))
+          .onSet(this.setOn.bind(this));
+        
         this.service[0].getCharacteristic(this.platform.Characteristic.InUse) // Whether the jet is on
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            callback(null, data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit] as unknown as number);
-          });
+          .onGet(this.getOn.bind(this));
+        
         this.service[0].getCharacteristic(this.platform.Characteristic.ValveType) // Type of valve this is
-          .on('get', (callback) => {
-            callback(null, 2);
+          .onGet(async() => {
+            return 2; 
           });
+        
         this.service[0].getCharacteristic(this.platform.Characteristic.SetDuration) // How long the timeout for jet is
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            this.platform.log.debug('Get Characteristic JetTimeout ->', (data.split('\r\n')[5].split(',')[21] as unknown as number)*60);
-            callback(null, (data.split('\r\n')[5].split(',')[21] as unknown as number)*60);
-          })
-          .on('set', async (value, callback) => {
-            const client = new net.Socket();
-            try {
-              client.connect(9090, this.accessory.context.spaIp, () => {
-                try {
-                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  const newval = (value as number/60) as unknown as string;
-                  client.write('W74:' + newval + '\n');
-                  client.destroy();
-                  this.platform.log.debug('Set Characteristic JetTimeout ->', newval);
-                  callback(null);
-                } catch {
-                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-                  this.platform.log.warn('Failed to set characteristic for spa device');
-                  client.destroy();
-                  callback(null);
-                }
-              });
-            } catch {
-              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-              this.platform.log.warn('Failed to set characteristic for spa device');
-              client.destroy();
-              callback(null);
-            }
-          })
-          .setProps({ minValue: 600, maxValue: 3600, minStep: 60});
+          .onGet(this.getTimeout.bind(this))
+          .onSet(this.setTimeout.bind(this))
+          .setProps({minValue: 0, maxValue: 3600, minStep: 60});
         break;
       
       case 'Blower': // Fan
-        this.service = [this.accessory.getService(this.platform.Service.Fan) || this.accessory.addService(this.platform.Service.Fan)];
+        this.service = [
+          this.accessory.getService(this.platform.Service.Fan) ||
+          this.accessory.addService(this.platform.Service.Fan),
+        ];
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
         this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the blower is on
-          .on('get', this.getOn.bind(this))
-          .on('set', this.setOn.bind(this));
+          .onGet(this.getOn.bind(this))
+          .onSet(this.setOn.bind(this));
         
         this.service[0].getCharacteristic(this.platform.Characteristic.RotationSpeed) // Speed of the blower
-          .on('get', this.getFanSpeed.bind(this))
-          .on('set', this.setFanSpeed.bind(this))
+          .onGet(this.getBlowerSpeed.bind(this))
+          .onSet(this.setBlowerSpeed.bind(this))
           .setProps({minValue: 0, maxValue: 5, minStep: 1});
         break;
       
       case 'Lights': // Lightbulb
-        this.service = [this.accessory.getService(this.platform.Service.Lightbulb) || this.accessory.addService(this.platform.Service.Lightbulb)];
+        this.service = [
+          this.accessory.getService(this.platform.Service.Lightbulb) ||
+          this.accessory.addService(this.platform.Service.Lightbulb),
+        ];
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
         this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the lights are on
-          .on('get', this.getOn.bind(this))
-          .on('set', this.setOn.bind(this));
+          .onGet(this.getOn.bind(this))
+          .onSet(this.setOn.bind(this));
 
-        this.service[0].getCharacteristic(this.platform.Characteristic.Brightness) // Whether the lights are on
-          .on('get', this.getBrightness.bind(this))
-          .on('set', this.setBrightness.bind(this))
+        this.service[0].getCharacteristic(this.platform.Characteristic.Brightness) // Brightness of the lights
+          .onGet(this.getBrightness.bind(this))
+          .onSet(this.setBrightness.bind(this))
           .setProps({minValue: 0, maxValue: 5, minStep: 1});
         break;
       
       case 'Lock': // Lock Mechanism
-        this.service = [this.accessory.getService(this.platform.Service.LockMechanism) || this.accessory.addService(this.platform.Service.LockMechanism)];
+        this.service = [
+          this.accessory.getService(this.platform.Service.LockMechanism) ||
+          this.accessory.addService(this.platform.Service.LockMechanism),
+        ];
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
         this.service[0].getCharacteristic(this.platform.Characteristic.LockCurrentState) // Whether the keypad lock is unlocked/locked
-          .on('get', this.getCurLock.bind(this));
+          .onGet(this.getLock.bind(this));
         
         this.service[0].getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
-          .on('get', this.getTargLock.bind(this))
-          .on('set', this.setTargLock.bind(this));
+          .onGet(this.getLock.bind(this))
+          .onSet(this.setLock.bind(this));
         break;
       
       case 'ModeSwitch': // Operation Mode Switch
-        this.service = [this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch)];
-        this.service.push(this.accessory.getService('Economy') || this.accessory.addService(this.platform.Service.Switch, 'Economy', accessory.context.device.deviceId + '-ECON'));
-        this.service.push(this.accessory.getService('Away') || this.accessory.addService(this.platform.Service.Switch, 'Away', accessory.context.device.deviceId + '-AWAY'));
-        this.service.push(this.accessory.getService('Week') || this.accessory.addService(this.platform.Service.Switch, 'Week', accessory.context.device.deviceId + '-WEEK'));
+        this.service = [
+          this.accessory.getService(this.platform.Service.Switch) ||
+          this.accessory.addService(this.platform.Service.Switch),
+        ];
+        this.service.push (
+          this.accessory.getService('Economy') ||
+          this.accessory.addService(this.platform.Service.Switch, 'Economy', accessory.context.device.deviceId + '-ECON'),
+        );
+        this.service.push (
+          this.accessory.getService('Away') ||
+          this.accessory.addService(this.platform.Service.Switch, 'Away', accessory.context.device.deviceId + '-AWAY'),
+        );
+        this.service.push (
+          this.accessory.getService('Week') ||
+          this.accessory.addService(this.platform.Service.Switch, 'Week', accessory.context.device.deviceId + '-WEEK'),
+        );
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, 'Normal');
         this.service[1].setCharacteristic(this.platform.Characteristic.Name, 'Economy');
         this.service[2].setCharacteristic(this.platform.Characteristic.Name, 'Away');
         this.service[3].setCharacteristic(this.platform.Characteristic.Name, 'Week');
         this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === 'NORM'){
-              callback(null, true);
-            } else {
-              callback(null, false);
-            }
-          })
-          .on('set', async (value, callback) => {
-            const client = new net.Socket();
-            try {
-              client.connect(9090, this.accessory.context.spaIp, () => {
-                try {
-                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  if (value as boolean) {
-                    client.write('W66:0\n');
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                  } else {
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                  }
-                  client.destroy();
-                  callback(null);
-                } catch {
-                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-                  this.platform.log.warn('Failed to set characteristic for spa device');
-                  client.destroy();
-                  callback(null);
-                }
-              });
-            } catch {
-              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-              this.platform.log.warn('Failed to set characteristic for spa device');
-              client.destroy();
-              callback(null);
-            }
+          .onGet(this.getOperMode.bind(this, 1))
+          .onSet(async (value) => {
+            this.setOperMode.bind(this, value, 1);
           });
         this.service[1].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === 'ECON'){
-              callback(null, true);
-            } else {
-              callback(null, false);
-            }
-          })
-          .on('set', async (value, callback) => {
-            const client = new net.Socket();
-            try {
-              client.connect(9090, this.accessory.context.spaIp, () => {
-                try {
-                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  if (value as boolean) {
-                    client.write('W66:1\n');
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                  } else {
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                  }
-                  client.destroy();
-                  callback(null);
-                } catch {
-                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-                  this.platform.log.warn('Failed to set characteristic for spa device');
-                  client.destroy();
-                  callback(null);
-                }
-              });
-            } catch {
-              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-              this.platform.log.warn('Failed to set characteristic for spa device');
-              client.destroy();
-              callback(null);
-            }
+          .onGet(this.getOperMode.bind(this, 2))
+          .onSet(async (value) => {
+            this.setOperMode.bind(this, value, 2);
           });
         this.service[2].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === 'AWAY'){
-              callback(null, true);
-            } else {
-              callback(null, false);
-            }
-          })
-          .on('set', async (value, callback) => {
-            const client = new net.Socket();
-            try {
-              client.connect(9090, this.accessory.context.spaIp, () => {
-                try {
-                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  if (value as boolean) {
-                    client.write('W66:2\n');
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                  } else {
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                  }
-                  client.destroy();
-                  callback(null);
-                } catch {
-                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-                  this.platform.log.warn('Failed to set characteristic for spa device');
-                  client.destroy();
-                  callback(null);
-                }
-              });
-            } catch {
-              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-              this.platform.log.warn('Failed to set characteristic for spa device');
-              client.destroy();
-              callback(null);
-            }
+          .onGet(this.getOperMode.bind(this, 3))
+          .onSet(async (value) => {
+            this.setOperMode.bind(this, value, 3);
           });
         this.service[3].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .on('get', async (callback) => {
-            const data = await this.spaData();
-            const operMode = data.split('\r\n')[3].split(',')[2];
-            if (operMode === 'WEEK'){
-              callback(null, true);
-            } else {
-              callback(null, false);
-            }
-          })
-          .on('set', async (value, callback) => {
-            const client = new net.Socket();
-            try {
-              client.connect(9090, this.accessory.context.spaIp, () => {
-                try {
-                  client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-                  if (value as boolean) {
-                    client.write('W66:3\n');
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                  } else {
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                  }
-                  client.destroy();
-                  callback(null);
-                } catch {
-                  this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-                  this.platform.log.warn('Failed to set characteristic for spa device');
-                  client.destroy();
-                  callback(null);
-                }
-              });
-            } catch {
-              this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-              this.platform.log.warn('Failed to set characteristic for spa device');
-              client.destroy();
-              callback(null);
-            }
+          .onGet(this.getOperMode.bind(this, 4))
+          .onSet(async (value) => {
+            this.setOperMode.bind(this, value, 4);
           });
         break;
       
       default: // Switch
-        this.service = [this.accessory.getService(this.platform.Service.Switch) || this.accessory.addService(this.platform.Service.Switch)];
+        this.service = [
+          this.accessory.getService(this.platform.Service.Switch) ||
+          this.accessory.addService(this.platform.Service.Switch),
+        ];
         this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
         this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .on('get', this.getOn.bind(this))
-          .on('set', this.setOn.bind(this));
+          .onGet(this.getOn.bind(this))
+          .onSet(this.setOn.bind(this));
         break;
     }
-  }
-
-  ////////////////////////
-  // FUNCTION - SPADATA //
-  ////////////////////////
-  spaData() {
-    // spaData - Connects to the websocket of the spa and get's data about the status of the spa to be parsed
-    // Returns - var data (string)
-    return new Promise<string>((resolve) => {
-      // Connect to the websocket of the spa and request data
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-        client.write('RF\n');
-      });
-      // Wait for the result to be recieved from the spa
-      client.on('data', (data) => {
-        if (data.toString().split('\r\n')[0] === 'RF:') {
-          try {
-            // Check the read was fine by reading a random line
-            data.toString().split('\r\n')[12].split(',')[13];
-            client.destroy();
-            resolve(data.toString());
-          } catch {
-            // Bad/malformed read, get a new read
-            client.write('RF\n');
-          }
-        }
-      });
-    });
   }
 
   //////////////////////
   // FUNCTION - GETON //
   //////////////////////
-  async getOn(callback: CharacteristicGetCallback) {
+  async getOn(): Promise<boolean> {
     // getOn - Check whether the switch or device is on/active
-    // Returns - const isOn (boolean)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data and check whether the accessory in question is on or off
-    let isOn: boolean;
-    switch(this.accessory.context.device.deviceClass){
+    // Returns - boolean
+    switch (this.accessory.context.device.deviceClass) {
       case 'Blower': {
-        isOn = data.split('\r\n')[4].split(',')[8] as unknown as boolean; // Will only be a '0' or '1'
-        break;
+        return new Promise<boolean>((resolve, reject) => {
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+            .then((response) => {
+              this.platform.log.debug('Get Characteristic Blower On ->', response.data.pumpAndBlower.blower.blowerStatus !== 'off');
+              resolve(response.data.pumpAndBlower.blower.blowerStatus !== 'off');
+            })
+            .catch(() => {
+              reject(new Error('Failed to get blower on characteristic for spa device'));
+            });
+        });
+      }
+      case 'Valve': {
+        return new Promise<boolean>((resolve, reject) => {
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+            .then((response) => {
+              const pumps = response.data.pumpAndBlower.pumps;
+              for (const pump of pumps) {
+                if (pump.id === this.accessory.context.device.apiId) {
+                  this.platform.log.debug('Get Characteristic Jet On ->', pump.pumpStatus === 'on');
+                  resolve(pump.pumpStatus === 'on');
+                  return;
+                }
+              }
+              reject(new Error('Failed to get jet active characteristic for spa device'));
+            })
+            .catch(() => {
+              reject(new Error('Failed to get jet active characteristic for spa device'));
+            });
+        });
       }
       case 'Lights': {
-        isOn = data.split('\r\n')[4].split(',')[15] as unknown as boolean; // Will only be a '0' or '1'
-        break;
+        return new Promise<boolean>((resolve, reject) => {
+          this.platform.spanetapi.get('/Lights/GetLightDetails/' + this.platform.spaId)
+            .then((response) => {
+              this.platform.log.debug('Get Characteristic Lights On ->', response.data.lightOn as boolean);
+              resolve(response.data.lightOn as boolean);
+            })
+            .catch(() => {
+              reject(new Error('Failed to get lights on characteristic for spa device'));
+            });
+        });
       }
       case 'PowerSwitch': {
-        const powerMode = data.split('\r\n')[5].split(',')[11] as unknown as number;
-        isOn = false;
-        if (powerMode > 0){
-          isOn = true;
-        }
-        break;
+        return new Promise<boolean>((resolve, reject) => {
+          this.platform.spanetapi.get('/Settings/PowerSave/' + this.platform.spaId)
+            .then((response) => {
+              this.platform.log.debug('Get Characteristic Power Save On ->', response.data.mode as number > 1);
+              resolve(response.data.mode as number > 1);
+            })
+            .catch(() => {
+              reject(new Error('Failed to get power save on characteristic for spa device'));
+            });
+        });
+      }
+      case 'SanitiseSwitch': {
+        return new Promise<boolean>((resolve, reject) => {
+          this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+            .then((response) => {
+              this.platform.log.debug('Get Characteristic Sanitise On ->', response.data.sanitiseOn as boolean);
+              resolve(response.data.sanitiseOn as boolean);
+            })
+            .catch(() => {
+              reject(new Error('Failed to get sanitise on characteristic for spa device'));
+            });
+        });
+      }
+      case 'SleepSwitch': {
+        return new Promise<boolean>((resolve, reject) => {
+          this.platform.spanetapi.get('/SleepTimers/' + this.platform.spaId)
+            .then((response) => {
+              const sleepTimers = response.data;
+              for (const sleepTimer of sleepTimers) {
+                if (sleepTimer.id === this.accessory.context.device.apiId) {
+                  this.platform.log.debug('Get Characteristic Sleep Timer On ->', sleepTimer.isEnabled as boolean);
+                  resolve(sleepTimer.isEnabled as boolean);
+                  return;
+                }
+              }
+              reject(new Error('Failed to get sleep timer on characteristic for spa device'));
+            })
+            .catch(() => {
+              reject(new Error('Failed to get sleep timer on characteristic for spa device'));
+            });
+        });
       }
       default: {
-        if (this.accessory.context.device.displayName === 'Clean'){
-          isOn = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
-        } else {
-          const state = data.split('\r\n')[this.accessory.context.spaReadLine].split(',')[this.accessory.context.spaReadBit];
-          if (state === this.accessory.context.spaReadOff){
-            isOn = false;
-          } else {
-            isOn = true;
-          }
-        }
-        break;
+        throw new Error('Unknown device class requesting on characteristic for spa device');
       }
     }
-
-    this.platform.log.debug('Get Characteristic On ->', isOn);
-    callback(null, isOn);
   }
+
+  //////////////////////////
+  // FUNCTION - CHECKAUTH //
+  //////////////////////////
+  /*async refreshAuth() {
+    if (Date.now() >= this.platform.accessTokenExpiry * 1000) {
+      this.platform.spanetapi.post('/OAuth/Token', {
+        'refreshToken': this.platform.refreshToken,
+        'userDeviceId': this.platform.userdeviceid,
+      })
+        .then((response) => {
+
+
+        })
+        .catch(() => {
+          throw new Error('Failed to refresh JWT token');
+        });
+    } else {
+      return;
+    }
+  }*/
 
   //////////////////////
   // FUNCTION - SETON //
   //////////////////////
-  async setOn(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setOn(value: CharacteristicValue): Promise<null> {
     // setOn - Sets the switch or device's on/active state
-    // Input - value as boolean (boolean)
+    // Input - boolean
+    switch (this.accessory.context.device.deviceClass) {
+      case 'Blower': {
+        return new Promise((resolve, reject) => {
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+            .then((response) => {
+              const blowerSpeed = response.data.pumpAndBlower.blower.blowerVariableSpeed as number;
     
-    // Connect to websocket to change device state, depending on accessory
-    const data = await this.spaData();
-    const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          
-          // Switch for accessory type to send correct command
-          switch(this.accessory.context.device.deviceClass){
-            case 'Blower': {
-              if (value as boolean){
-                client.write('S28:0\n');
-              } else {
-                client.write('S28:2\n');
-              }
-              break;
-            }
-            case 'Lights': {
-              if (data.split('\r\n')[4].split(',')[15] as unknown as boolean !== value as boolean){
-                client.write('W14\n');
-              }
-              break;
-            }
-            case 'PowerSwitch': {
-              if (value as boolean){
-                client.write('W63:1\n');
-              } else {
-                client.write('W63:0\n');
-              }
-              break;
-            }
-            default: {
-              if (this.accessory.context.device.displayName === 'Clean'){
-                const state = data.split('\r\n')[4].split(',')[17] as unknown as boolean;
-                if (state !== value as boolean){
-                  client.write('W12\n');
-                }
-              } else {
-                if (value as boolean){
-                  client.write(this.accessory.context.spaCommand + '96\n');
-                } else {
-                  client.write(this.accessory.context.spaCommand + '128\n');
+              this.platform.spanetapi.put('/PumpsAndBlower/SetPump/' + this.accessory.context.device.apiId, {
+                'deviceId': this.platform.spaId,
+                'modeId': value as boolean ? 2 : 1,
+                'speed': blowerSpeed,
+              })
+                .then(() => {
+                  resolve;
+                })
+                .catch(() => {
+                  reject(new Error('Failed to set blower on characteristic for spa device'));
+                });
+            })
+            .catch(() => {
+              reject(new Error('Failed to set blower on characteristic for spa device'));
+            });
+        });
+      }
+      case 'Valve': {
+        return new Promise((resolve, reject) => {
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+            .then((response) => {
+              let pumpVariableSpeed = 0;
+              const pumps = response.data.pumpAndBlower.pumps;
+              for (const pump of pumps) {
+                if (pump.id === this.accessory.context.device.apiId) {
+                  pumpVariableSpeed = pump.pumpVariableSpeed as number;
                 }
               }
-              break;
-            }
-          }
 
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
+              this.platform.spanetapi.put('/PumpsAndBlower/SetPump/' + this.accessory.context.device.apiId, {
+                'deviceId': this.platform.spaId,
+                'modeId': (value as boolean) ? 1 : 2,
+                'pumpVariableSpeed': pumpVariableSpeed,
+              })
+                .then(() => {
+                  resolve;
+                })
+                .catch(() => {
+                  reject(new Error('Failed to set jet active characteristic for spa device'));
+                });
+            })
+            .catch(() => {
+              reject(new Error('Failed to set jet active characteristic for spa device'));
+            });
+        });
+      }
+      case 'Lights': {
+        return new Promise((resolve, reject) => {
+          this.platform.spanetapi.put('/Lights/SetLightStatus/' + this.accessory.context.device.apiId, {
+            'deviceId': this.platform.spaId,
+            'on': value as boolean,
+          })
+            .then(() => {
+              resolve;
+            })
+            .catch(() => {
+              reject(new Error('Failed to set lights on characteristic for spa device'));
+            });
+        });
+      }
+      case 'PowerSwitch': {
+        return new Promise((resolve, reject) => {
+          this.platform.spanetapi.put('/Settings/PowerSave/' + this.platform.spaId, {
+            'mode': value as boolean ? 3 : 1,
+          })
+            .then(() => {
+              resolve;
+            })
+            .catch(() => {
+              reject(new Error('Failed to set power save on characteristic for spa device'));
+            });
+        });
+      }
+      case 'SanitiseSwitch': {
+        return new Promise((resolve, reject) => {
+          this.platform.spanetapi.put('/Settings/SanitiseStatus/' + this.accessory.context.device.apiId, {
+            'on': value as boolean,
+          })
+            .then(() => {
+              resolve;
+            })
+            .catch(() => {
+              reject(new Error('Failed to set sanitise on characteristic for spa device'));
+            });
+        });
+      }
+      case 'SleepSwitch': {
+        return new Promise((resolve, reject) => {
+          this.platform.spanetapi.get('/SleepTimers/' + this.platform.spaId)
+            .then((response) => {
+              for (const sleepTimer of response.data) {
+                if (sleepTimer.id === this.accessory.context.device.apiId) {
+                  this.platform.spanetapi.put('/SleepTimers/' + this.accessory.context.device.apiId, {
+                    'deviceId': this.platform.spaId,
+                    'timerNumber': sleepTimer.timerNumber,
+                    'timerName': sleepTimer.timerName,
+                    'startTime': sleepTimer.startTIme,
+                    'endTime': sleepTimer.endTime,
+                    'daysHex': sleepTimer.daysHex,
+                    'isEnabled': value as boolean,
+                  })
+                    .then(() => {
+                      resolve;
+                    })
+                    .catch(() => {
+                      reject(new Error('Failed to set sleep timer on characteristic for spa device'));
+                    });
+                }
+              }
+              reject(new Error('Failed to set sleep timer on characteristic for spa device'));
+            })
+            .catch(() => {
+              reject(new Error('Failed to set sleep timer on characteristic for spa device'));
+            });
+        });
+      }
+      default: {
+        throw new Error('Unknown device class setting on characteristic for spa device');
+      }
     }
+  }
+  
+  ////////////////////////////
+  // FUNCTION - GETOPERMODE //
+  ////////////////////////////
+  async getOperMode(targetMode: number): Promise<boolean> {
+    // getOperMode - Gets the current spa operation mode
+    // Input - number (0 - Normal, 1 - Economy, 2 - Away, 3 - Weekends)
+    // Returns - boolean
+    return new Promise<boolean>((resolve, reject) => {
+      this.platform.spanetapi.get('/Settings/OperationMode/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Operation Mode ->', response.data as number === targetMode);
+          resolve(response.data as number === targetMode);  
+        })
+        .catch(() => {
+          reject(new Error('Failed to get operation mode characteristic for spa device')); 
+        });
+    });
+  }
 
-    this.platform.log.debug('Set Characteristic On ->', value);
-    callback(null);
+  ////////////////////////////
+  // FUNCTION - SETOPERMODE //
+  ////////////////////////////
+  async setOperMode(value: CharacteristicValue, targetMode: number): Promise<null> {
+    // setOperMode - Sets the current spa operation mode
+    // Input - number (0 - Inactive, 1 - Idle, 2 - Heat, 3 - Cool)
+    return new Promise((resolve, reject) => {
+      if (value as boolean === false) {
+        this.service[targetMode-1].updateCharacteristic(this.platform.Characteristic.On, true);
+        resolve;
+        return;
+
+      } else {
+        this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
+          'mode': targetMode,
+        })
+          .then(() => {
+            if (targetMode !== 1) {
+              this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+            }
+            if (targetMode !== 2) {
+              this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+            }
+            if (targetMode !== 3) {
+              this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+            }
+            if (targetMode !== 4) {
+              this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+            }
+            resolve;
+          })
+          .catch(() => {
+            reject(new Error('Failed to set operation mode characteristic for spa device'));
+          });
+      }
+    });
   }
 
   ////////////////////////////
   // FUNCTION - GETCURSTATE //
   ////////////////////////////
-  async getCurState(callback: CharacteristicGetCallback) {
+  async getCurState(): Promise<number> {
     // getCurState - Check whether the heater is off, heating or cooling
-    // Returns - const currentValue (integer)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data to check the heater state
-    // 1 - OFF, 2 - HEATING, 3 - COOLING
-    let currentValue = data.split('\r\n')[4].split(',')[13] as unknown as number; // Will only be a '0' or '1'
-    if (currentValue === 1){
-      // This means the heater is on, but it could be heating or cooling
-      const waterTemp = data.split('\r\n')[4].split(',')[16] as unknown as number;
-      const setTemp = data.split('\r\n')[5].split(',')[9] as unknown as number;
-      if (waterTemp > setTemp){
-        const heatState = data.split('\r\n')[6].split(',')[27] as unknown as number;
-        if (heatState === 0 || heatState === 2){
-          currentValue = 2; // Heater is cooling not heating
-        }
-      }
-    }
-
-    this.platform.log.debug('Get Characteristic HeaterState ->', currentValue);
-    callback(null, currentValue+1);
+    // Returns - number (0 - Off, 1 - Heat, 2 - Cool)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Information/' + this.platform.spaId)
+        .then((response) => {
+          if (response.data.information.informationStatus.heater as string === '0') {
+            this.platform.log.debug('Get Characteristic Current Heating State ->', 0);
+            resolve(0);
+  
+          } else {
+            // Heating if current temperature too low, cooling if current temperature too high
+            this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+              .then((response) => {
+                this.platform.log.debug('Get Characteristic Current Heating State ->',
+                  (response.data.setTemperature as number - response.data.currentTemperature as number > 0) ? 1 : 2,
+                );
+                resolve((response.data.setTemperature as number - response.data.currentTemperature as number > 0) ? 1 : 2);
+              })
+              .catch(() => {
+                reject(new Error('Failed to get current heater state characteristic for spa device'));
+              });
+          }
+        })
+        .catch(() => {
+          reject(new Error('Failed to get current heater state characteristic for spa device'));
+        });
+    });
   }
 
   /////////////////////////////
   // FUNCTION - GETTARGSTATE //
   /////////////////////////////
-  async getTargState(callback: CharacteristicGetCallback) {
+  async getTargState(): Promise<number> {
     // getTargState - Check whether the heater is set to off, heating, cooling or auto
-    // Returns - const currentValue (integer)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data to check the heater state
-    // 0 - AUTO, 1 - HEATING, 2 - COOLING
-    let currentValue = data.split('\r\n')[6].split(',')[27] as unknown as number;
-
-    this.platform.log.debug('Get Characteristic HeaterState ->', currentValue);
-    callback(null, currentValue);
+    // Returns - number (0 - Auto, 1 - Heat, 2 - Cool)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Settings/HeatPumpMode/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Target Heating State ->',
+          response.data.mode as number === 4 ? 0 : (response.data.mode as number - 1),
+          );
+          resolve(response.data.mode as number === 4 ? 0 : (response.data.mode as number - 1));
+        })
+        .catch(() => {
+          reject(new Error('Failed to get target heater state characteristic for spa device')); 
+        });
+    });
   }
 
   /////////////////////////////
   // FUNCTION - SETTARGSTATE //
   /////////////////////////////
-  async setTargState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setTargState(value: CharacteristicValue): Promise<null> {
     // setTargState - Set the heater mode to off, heat, cool or auto
-    // Input - value as string (string)
-    
-    // Connect to socket and write data
-    const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          // Send command to set mode
-          let valueInt = value as string;
-          client.write('W99:' + valueInt + '\n');
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
-    }
-
-    this.platform.log.debug('Set Characteristic HeaterState ->', value);
-    callback(null);
+    // Input - number (0 - Auto, 1 - Heat, 2 - Cool)
+    return new Promise((resolve, reject) => {
+      this.platform.spanetapi.put('/Settings/SetHeatPumpMode/' + this.platform.spaId, {
+        'mode': value as number + 1,  
+      })
+        .then(() => {
+          resolve;
+        })
+        .catch(() => {
+          reject(new Error('Failed to set target heater state characteristic for spa device'));
+        });
+    });
   }
 
   ///////////////////////////
   // FUNCTION - GETCURTEMP //
   ///////////////////////////
-  async getCurTemp(callback: CharacteristicGetCallback) {
+  async getCurTemp(): Promise<number> {
     // getCurTemp - Get the current actual water temperature
-    // Returns - const currentValue (float)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data to check the water temperature
-    const currentValueString = data.split('\r\n')[4].split(',')[16] as string;
-    // Convert to float
-    const currentValueInt = String(currentValueString).slice(0, -1) + '.' + String(currentValueString).slice(-1);
-    const currentValue = parseFloat(currentValueInt);
-
-    this.platform.log.debug('Get Characteristic WaterTemp ->', currentValue);
-    callback(null, currentValue);
+    // Returns - number (-270.0 - 100.0)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Current Temperature ->', response.data.currentTemperature as number / 10);
+          resolve(response.data.currentTemperature as number / 10);
+        })
+        .catch(() => {
+          reject(new Error('Failed to get current temperature characteristic for spa device')); 
+        });
+    });
   }
 
   ////////////////////////////
   // FUNCTION - GETTARGTEMP //
   ////////////////////////////
-  async getTargTemp(callback: CharacteristicGetCallback) {
+  async getTargTemp(): Promise<number> {
     // getTargTemp - Get the set temperature for the spa water
-    // Returns - const currentValue (float)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data to check the set water temperature
-    const currentValueString = data.split('\r\n')[5].split(',')[9] as string;
-    // Convert to float
-    const currentValueInt = String(currentValueString).slice(0, -1) + '.' + String(currentValueString).slice(-1);
-    const currentValue = parseFloat(currentValueInt);
-
-    this.platform.log.debug('Get Characteristic SetTemp ->', currentValue);
-    callback(null, currentValue);
+    // Returns - number (-270.0 - 100.0)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Target Temperature ->', response.data.setTemperature as number / 10);
+          resolve(response.data.setTemperature as number / 10);
+        })
+        .catch(() => {
+          reject(new Error('Failed to get target temperature characteristic for spa device'));
+        });
+    });
   }
 
   ////////////////////////////
   // FUNCTION - SETTARGTEMP //
   ////////////////////////////
-  async setTargTemp(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setTargTemp(value: CharacteristicValue): Promise<null> {
     // setTargTemp - Set the temperature for the water heater
     // Input - value as string (string)
-    
-    // Connect to socket and write data
-    const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          // Send command to set temperature
-          const valueSend = (value as number * 10).toFixed().padStart(3, '0');
-          this.platform.log.debug('Set Characteristic TargTemp ->', valueSend);
-          client.write('W40:' + valueSend + '\n');
-          callback(null);
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
-    }
+    return new Promise((resolve, reject) => {
+      this.platform.spanetapi.put('/Dashboard/' + this.platform.spaId, {
+        'temperature': value as number * 10,  
+      })
+        .then(() => {
+          resolve;
+        })
+        .catch(() => {
+          reject(new Error('Failed to set target temperature characteristic for spa device'));
+        });
+    });
   }
 
-  ////////////////////////////
-  // FUNCTION - GETFANSPEED //
-  ////////////////////////////
-  async getFanSpeed(callback: CharacteristicGetCallback) {
-    // getFanSpeed - Get the speed for the spa blower
-    // Returns - const currentValue (number)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data to check the blower speed
-    const currentValue = data.split('\r\n')[5].split(',')[2] as unknown as number;
-
-    this.platform.log.debug('Get Characteristic FanSpeed ->', currentValue);
-    callback(null, currentValue);
+  ///////////////////////////
+  // FUNCTION - GETTIMEOUT //
+  ///////////////////////////
+  async getTimeout(): Promise<number> {
+    // getTimeout - Get the timeout for the spa jets
+    // Returns - number (0-3600)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Settings/Timeout/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Jet Timeout ->', response.data as number * 60);
+          resolve(response.data as number * 60);
+        })
+        .catch((error) => {
+          this.platform.log.warn('################');
+          this.platform.log.warn(error);
+          reject(new Error('Failed to get jet timeout characteristic for spa device'));
+        });
+    });
   }
 
-  ////////////////////////////
-  // FUNCTION - SETFANSPEED //
-  ////////////////////////////
-  async setFanSpeed(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    // setFanSpeed - Set the speed for the spa blower
-    // Input - value as string (string)
-    
-    // Connect to socket and write data
-    const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          // Send command to set fan speed
-          const valueString = value as string;
-          if (value as number > 0) {
-            client.write('S13:' + valueString + '\n');
-            client.write('S28:0\n');
-          } else {
-            client.write('S28:2\n');
-          }
-          client.destroy();
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
-    }
+  async setTimeout(value: CharacteristicValue): Promise<null> {
+    return new Promise((resolve, reject) => {
+      this.platform.spanetapi.put('/Settings/Timeout/' + this.platform.spaId, {
+        'timeout': value as number / 60, 
+      })
+        .then(() => {
+          resolve;
+        })
+        .catch(() => {
+          reject(new Error('Failed to set jet active characteristic for spa device'));
+        });
+    });
+  }
 
-    this.platform.log.debug('Set Characteristic FanSpeed ->', value);
-    callback(null);
+  ///////////////////////////////
+  // FUNCTION - GETBLOWERSPEED //
+  ///////////////////////////////
+  async getBlowerSpeed(): Promise<number> {
+    // getBlowerSpeed - Get the speed for the spa blower
+    // Returns - number (1-5)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Blower Speed ->', response.data.pumpAndBlower.blower.blowerVariableSpeed as number);
+          resolve(response.data.pumpAndBlower.blower.blowerVariableSpeed as number);
+        })
+        .catch(() => {
+          reject(new Error('Failed to get blower speed characteristic for spa device'));
+        });
+    });
+  }
+
+  ///////////////////////////////
+  // FUNCTION - SETBLOWERSPEED //
+  ///////////////////////////////
+  async setBlowerSpeed(value: CharacteristicValue): Promise<null> {
+    // setBlowerSpeed - Set the speed for the spa blower
+    // Input - number (1-5)
+    return new Promise((resolve, reject) => {
+      this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+        .then((response) => {
+          const blowerModeRaw = response.data.pumpAndBlower.blower.blowerStatus as string;
+          const blowerMode = blowerModeRaw === 'vari' ? 2 : blowerModeRaw === 'ramp' ? 3 : 1;
+
+          this.platform.spanetapi.put('/PumpsAndBlower/SetPump/' + this.accessory.context.device.apiId, {
+            'deviceId': this.platform.spaId,
+            'modeId': blowerMode,
+            'speed': value as number,
+          })
+            .then(() => {
+              resolve;
+            })
+            .catch(() => {
+              reject(new Error('Failed to set blower speed characteristic for spa device'));
+            });
+        })
+        .catch(() => {
+          reject(new Error('Failed to set blower speed characteristic for spa device'));
+        });
+    });
   }
 
   //////////////////////////////
   // FUNCTION - GETBRIGHTNESS //
   //////////////////////////////
-  async getBrightness(callback: CharacteristicGetCallback) {
+  async getBrightness(): Promise<number> {
     // getBrightness - Get the brightness for the spa lights
-    // Returns - const currentValue (number)
-
-    // Call function to get latest data from spa
-    const data = await this.spaData();
-    // Parse the data to check the light brightness
-    const currentValue = data.split('\r\n')[5].split(',')[3] as unknown as number;
-
-    this.platform.log.debug('Get Characteristic LightBrightness ->', currentValue);
-    callback(null, currentValue);
+    // Returns - number (1-5)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Lights/GetLightDetails/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Lights Brightness ->', response.data.lightBrightness as number);
+          resolve(response.data.lightBrightness as number);
+        })
+        .catch(() => {
+          reject(new Error('Failed to get lights brightness characteristic for spa device'));
+        });
+    });
   }
 
   //////////////////////////////
   // FUNCTION - SETBRIGHTNESS //
   //////////////////////////////
-  async setBrightness(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setBrightness(value: CharacteristicValue): Promise<null> {
     // setBrightness - Set the brightness for the spa lights
-    // Input - value as string (string)
-    
-    // Connect to socket and write data
-    const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          // Send command to set brightness
-          const valueString = value as string;
-          if (value as number > 0) {
-            client.write('S08:' + valueString + '\n');
-          } else {
-            client.write('W14\n');
-          }
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
-    }
-
-    this.platform.log.debug('Set Characteristic LightBrightness ->', value);
-    callback(null);
-  }
-
-  ///////////////////////////
-  // FUNCTION - GETCURLOCK //
-  ///////////////////////////
-  async getCurLock(callback) {
-    // getCurLock - Get the current lock state for the keypad lock
-    // Returns - const currentValue (number)
-
-    // Call function to get latest data from spa
-    const value = await new Promise<number>((resolve) => {
-      // Connect to the websocket of the spa and request data
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-        client.write('RF\n');
-      });
-      // Wait for the result to be recieved from the spa
-      client.on('data', (data) => {
-        if (data.toString().split('\r\n')[0] === 'RF:') {
-          client.destroy();
-          // Parse the data to check the lock state
-          const rawValue = data.toString().split('\r\n')[12].split(',')[13];
-          this.platform.log.debug('Get Characteristic LockState ->', rawValue);
-          if (rawValue === '0'){
-            resolve(0);
-          } else {
-            resolve(1);
-          }
-        }
-      });
+    // Input - number (1-5)
+    return new Promise((resolve, reject) => {
+      this.platform.spanetapi.put('/Lights/SetLightBrightness/' + this.accessory.context.device.apiId, {
+        'deviceId': this.platform.spaId,
+        'brightness': value as number,
+      })
+        .then(() => {
+          resolve;
+        })
+        .catch(() => {
+          reject(new Error('Failed to set lights brightness characteristic for spa device'));
+        });
     });
-    callback(null, value);
   }
 
-  ////////////////////////////
-  // FUNCTION - GETTARGLOCK //
-  ////////////////////////////
-  async getTargLock(callback) {
-    // getTargLock - Get the current lock state for the keypad lock
-    // Returns - const currentValue (number)
-
-    // Call function to get latest data from spa
-    const value = await new Promise<number>((resolve) => {
-      // Connect to the websocket of the spa and request data
-      const client = new net.Socket();
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-        client.write('RF\n');
-      });
-      // Wait for the result to be recieved from the spa
-      client.on('data', (data) => {
-        if (data.toString().split('\r\n')[0] === 'RF:') {
-          client.destroy();
-          // Parse the data to check the lock state
-          const rawValue = data.toString().split('\r\n')[12].split(',')[13];
-          this.platform.log.debug('Get Characteristic LockState ->', rawValue);
-          if (rawValue === '0'){
-            resolve(0);
-          } else {
-            resolve(1);
-          }
-        }
-      });
+  ////////////////////////
+  // FUNCTION - GETLOCK //
+  ////////////////////////
+  async getLock(): Promise<number> {
+    // getLock - Get the lock state for the keypad lock
+    // Returns - number (0 - Off, 1 - On)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spanetapi.get('/Settings/Lock/' + this.platform.spaId)
+        .then((response) => {
+          this.platform.log.debug('Get Characteristic Lock State ->', response.data as number === 1 ? 0 : 1);
+          resolve(response.data as number === 1 ? 0 : 1);
+        })
+        .catch(() => {
+          reject(new Error('Failed to get lock on characteristic for spa device'));
+        });
     });
-    callback(null, value);
   }
 
-  ////////////////////////////
-  // FUNCTION - SETTARGLOCK //
-  ////////////////////////////
-  async setTargLock(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    // setTargLock - Set the target lock state for the keypad lock
-    // Input - value as string (string)
-      
-    // Connect to socket and write data
-    const client = new net.Socket();
-    try {
-      client.connect(9090, this.accessory.context.spaIp, () => {
-        try {
-          client.write('<connect--' + this.accessory.context.spaSocket + '--' + this.accessory.context.spaMember + '>');
-          // Send command to set lock state
-          let valueString = value as string;
-          if (valueString === '1'){
-            valueString = '2';
-          }
-          client.write('S21:' + valueString + '\n');
-        } catch {
-          this.platform.log.error('Error: Data transfer to the websocket failed, but connection was successful. Please check your network connection, or open an issue on GitHub (unexpected).');
-          this.platform.log.warn('Failed to set characteristic for spa device');
-          client.destroy();
-          callback(null);
-        }
-      });
-    } catch {
-      this.platform.log.error('Error: The websocket connection to the spa failed. Please check your network connection and that the spa is online by trying to connect in the official SpaLINK app.');
-      this.platform.log.warn('Failed to set characteristic for spa device ->', value);
-      client.destroy();
-      callback(null);
-    }
-  
-    this.platform.log.debug('Set Characteristic LockState ->', value);
-    callback(null);
+  ////////////////////////
+  // FUNCTION - SETLOCK //
+  ////////////////////////
+  async setLock(value: CharacteristicValue): Promise<null> {
+    // setLock - Set the lock state for the keypad lock
+    // Input - number (0 - Off, 1 - On)
+    return new Promise((resolve, reject) => {
+      this.platform.spanetapi.put('/Settings/Lock/' + this.platform.spaId, {
+        'lockMode': value as number === 0 ? 1 : 2,    
+      })
+        .then(() => {
+          resolve;
+        })
+        .catch(() => {
+          reject(new Error('Failed to set lock on characteristic for spa device'));
+        });
+    });
   }
 }
