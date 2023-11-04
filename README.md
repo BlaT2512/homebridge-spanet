@@ -18,7 +18,7 @@ NOTE: For best performance, and due to the number of accessories this device exp
 # Setup
 Configure the plugin in Homebridge Web Interface > Plugins > homebridge-spanet > Settings
 
-Username: The username you use to access the SmartLink app
+Email: The email you use to access the SmartLink app
 
 Password: Your SmartLink app account password
 
