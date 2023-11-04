@@ -183,7 +183,7 @@ export class SpaNETPlatformAccessory {
     switch (this.accessory.context.device.deviceClass) {
       case 'Blower': {
         return new Promise<boolean>((resolve, reject) => {
-          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId, { id: 'PumpsAndBlower' })
             .then((response) => {
               this.platform.log.debug('Get Characteristic Blower On ->', response.data.pumpAndBlower.blower.blowerStatus !== 'off');
               resolve(response.data.pumpAndBlower.blower.blowerStatus !== 'off');
@@ -195,7 +195,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'Valve': {
         return new Promise<boolean>((resolve, reject) => {
-          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId, { id: 'PumpsAndBlower' })
             .then((response) => {
               const pumps = response.data.pumpAndBlower.pumps;
               for (const pump of pumps) {
@@ -214,7 +214,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'Lights': {
         return new Promise<boolean>((resolve, reject) => {
-          this.platform.spanetapi.get('/Lights/GetLightDetails/' + this.platform.spaId)
+          this.platform.spanetapi.get('/Lights/GetLightDetails/' + this.platform.spaId, { id: 'LightDetails' })
             .then((response) => {
               this.platform.log.debug('Get Characteristic Lights On ->', response.data.lightOn as boolean);
               resolve(response.data.lightOn as boolean);
@@ -226,7 +226,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'PowerSwitch': {
         return new Promise<boolean>((resolve, reject) => {
-          this.platform.spanetapi.get('/Settings/PowerSave/' + this.platform.spaId)
+          this.platform.spanetapi.get('/Settings/PowerSave/' + this.platform.spaId, { id: 'PowerSave' })
             .then((response) => {
               this.platform.log.debug('Get Characteristic Power Save On ->', response.data.mode as number > 1);
               resolve(response.data.mode as number > 1);
@@ -238,7 +238,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'SanitiseSwitch': {
         return new Promise<boolean>((resolve, reject) => {
-          this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+          this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId, { id: 'Dashboard' })
             .then((response) => {
               this.platform.log.debug('Get Characteristic Sanitise On ->', response.data.sanitiseOn as boolean);
               resolve(response.data.sanitiseOn as boolean);
@@ -250,7 +250,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'SleepSwitch': {
         return new Promise<boolean>((resolve, reject) => {
-          this.platform.spanetapi.get('/SleepTimers/' + this.platform.spaId)
+          this.platform.spanetapi.get('/SleepTimers/' + this.platform.spaId, { id: 'SleepTimers' })
             .then((response) => {
               const sleepTimers = response.data;
               for (const sleepTimer of sleepTimers) {
@@ -303,7 +303,7 @@ export class SpaNETPlatformAccessory {
     switch (this.accessory.context.device.deviceClass) {
       case 'Blower': {
         return new Promise((resolve, reject) => {
-          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId, { id: 'PumpsAndBlower' })
             .then((response) => {
               const blowerSpeed = response.data.pumpAndBlower.blower.blowerVariableSpeed as number;
     
@@ -311,7 +311,7 @@ export class SpaNETPlatformAccessory {
                 'deviceId': this.platform.spaId,
                 'modeId': value as boolean ? 2 : 1,
                 'speed': blowerSpeed,
-              })
+              }, { cache: { update: { 'PumpsAndBlower': 'delete' } } })
                 .then(() => {
                   resolve;
                 })
@@ -326,7 +326,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'Valve': {
         return new Promise((resolve, reject) => {
-          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+          this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId, { id: 'PumpsAndBlower' })
             .then((response) => {
               let pumpVariableSpeed = 0;
               const pumps = response.data.pumpAndBlower.pumps;
@@ -340,7 +340,7 @@ export class SpaNETPlatformAccessory {
                 'deviceId': this.platform.spaId,
                 'modeId': (value as boolean) ? 1 : 2,
                 'pumpVariableSpeed': pumpVariableSpeed,
-              })
+              }, { cache: { update: { 'PumpsAndBlower': 'delete' } } })
                 .then(() => {
                   resolve;
                 })
@@ -358,7 +358,7 @@ export class SpaNETPlatformAccessory {
           this.platform.spanetapi.put('/Lights/SetLightStatus/' + this.accessory.context.device.apiId, {
             'deviceId': this.platform.spaId,
             'on': value as boolean,
-          })
+          }, { cache: { update: { 'LightDetails': 'delete' } } })
             .then(() => {
               resolve;
             })
@@ -371,7 +371,7 @@ export class SpaNETPlatformAccessory {
         return new Promise((resolve, reject) => {
           this.platform.spanetapi.put('/Settings/PowerSave/' + this.platform.spaId, {
             'mode': value as boolean ? 3 : 1,
-          })
+          }, { cache: { update: { 'PowerSave': 'delete' } } })
             .then(() => {
               resolve;
             })
@@ -384,7 +384,7 @@ export class SpaNETPlatformAccessory {
         return new Promise((resolve, reject) => {
           this.platform.spanetapi.put('/Settings/SanitiseStatus/' + this.accessory.context.device.apiId, {
             'on': value as boolean,
-          })
+          }, { cache: { update: { 'Dashboard': 'delete' } } })
             .then(() => {
               resolve;
             })
@@ -395,7 +395,7 @@ export class SpaNETPlatformAccessory {
       }
       case 'SleepSwitch': {
         return new Promise((resolve, reject) => {
-          this.platform.spanetapi.get('/SleepTimers/' + this.platform.spaId)
+          this.platform.spanetapi.get('/SleepTimers/' + this.platform.spaId, { id: 'SleepTimers' })
             .then((response) => {
               for (const sleepTimer of response.data) {
                 if (sleepTimer.id === this.accessory.context.device.apiId) {
@@ -407,7 +407,7 @@ export class SpaNETPlatformAccessory {
                     'endTime': sleepTimer.endTime,
                     'daysHex': sleepTimer.daysHex,
                     'isEnabled': value as boolean,
-                  })
+                  }, { cache: { update: { 'SleepTimers': 'delete' } } })
                     .then(() => {
                       resolve;
                     })
@@ -437,7 +437,7 @@ export class SpaNETPlatformAccessory {
     // Input - number (0 - Normal, 1 - Economy, 2 - Away, 3 - Weekends)
     // Returns - boolean
     return new Promise<boolean>((resolve, reject) => {
-      this.platform.spanetapi.get('/Settings/OperationMode/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Settings/OperationMode/' + this.platform.spaId, { id: 'OperationMode' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Operation Mode ->', response.data as number === targetMode);
           resolve(response.data as number === targetMode);  
@@ -463,7 +463,7 @@ export class SpaNETPlatformAccessory {
       } else {
         this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
           'mode': targetMode,
-        })
+        }, { cache: { update: { 'OperationMode': 'delete' } } })
           .then(() => {
             if (targetMode !== 1) {
               this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
@@ -493,7 +493,7 @@ export class SpaNETPlatformAccessory {
     // getCurState - Check whether the heater is off, heating or cooling
     // Returns - number (0 - Off, 1 - Heat, 2 - Cool)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Information/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Information/' + this.platform.spaId, { id: 'Information' })
         .then((response) => {
           if (response.data.information.informationStatus.heater as string === '0') {
             this.platform.log.debug('Get Characteristic Current Heating State ->', 0);
@@ -501,7 +501,7 @@ export class SpaNETPlatformAccessory {
   
           } else {
             // Heating if current temperature too low, cooling if current temperature too high
-            this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+            this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId, { id: 'Dashboard' })
               .then((response) => {
                 this.platform.log.debug('Get Characteristic Current Heating State ->',
                   (response.data.setTemperature as number - response.data.currentTemperature as number > 0) ? 1 : 2,
@@ -524,14 +524,14 @@ export class SpaNETPlatformAccessory {
   /////////////////////////////
   async getTargState(): Promise<number> {
     // getTargState - Check whether the heater is set to off, heating, cooling or auto
-    // Returns - number (0 - Auto, 1 - Heat, 2 - Cool)
+    // Returns - number (0 - Off, 1 - Heat, 2 - Cool, 3 - Auto)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Settings/HeatPumpMode/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Settings/HeatPumpMode/' + this.platform.spaId, { id: 'HeatPumpMode' })
         .then((response) => {
-          this.platform.log.debug('Get Characteristic Target Heating State ->',
-          response.data.mode as number === 4 ? 0 : (response.data.mode as number - 1),
-          );
-          resolve(response.data.mode as number === 4 ? 0 : (response.data.mode as number - 1));
+          const rawmode = response.data.mode as number;
+          const mode = rawmode === 1 ? 3 : rawmode === 2 ? 1 : rawmode === 3 ? 2 : 0;
+          this.platform.log.debug('Get Characteristic Target Heating State ->', mode);
+          resolve(mode);
         })
         .catch(() => {
           reject(new Error('Failed to get target heater state characteristic for spa device')); 
@@ -544,11 +544,11 @@ export class SpaNETPlatformAccessory {
   /////////////////////////////
   async setTargState(value: CharacteristicValue): Promise<null> {
     // setTargState - Set the heater mode to off, heat, cool or auto
-    // Input - number (0 - Auto, 1 - Heat, 2 - Cool)
+    // Input - number (0 - Off, 1 - Heat, 2 - Cool, 3 - Auto)
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/SetHeatPumpMode/' + this.platform.spaId, {
-        'mode': value as number + 1,  
-      })
+        'mode': value === 0 ? 4 : value === 1 ? 2 : value === 2 ? 3 : 1,  
+      }, { cache: { update: { 'HeatPumpMode': 'delete' } } })
         .then(() => {
           resolve;
         })
@@ -565,7 +565,7 @@ export class SpaNETPlatformAccessory {
     // getCurTemp - Get the current actual water temperature
     // Returns - number (-270.0 - 100.0)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId, { id: 'Dashboard' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Current Temperature ->', response.data.currentTemperature as number / 10);
           resolve(response.data.currentTemperature as number / 10);
@@ -583,7 +583,7 @@ export class SpaNETPlatformAccessory {
     // getTargTemp - Get the set temperature for the spa water
     // Returns - number (-270.0 - 100.0)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Dashboard/' + this.platform.spaId, { id: 'Dashboard' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Target Temperature ->', response.data.setTemperature as number / 10);
           resolve(response.data.setTemperature as number / 10);
@@ -603,7 +603,7 @@ export class SpaNETPlatformAccessory {
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Dashboard/' + this.platform.spaId, {
         'temperature': value as number * 10,  
-      })
+      }, { cache: { update: { 'Dashboard': 'delete' } } })
         .then(() => {
           resolve;
         })
@@ -620,7 +620,7 @@ export class SpaNETPlatformAccessory {
     // getTimeout - Get the timeout for the spa jets
     // Returns - number (0-3600)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Settings/Timeout/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Settings/Timeout/' + this.platform.spaId, { id: 'Timeout' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Jet Timeout ->', response.data as number * 60);
           resolve(response.data as number * 60);
@@ -637,7 +637,7 @@ export class SpaNETPlatformAccessory {
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/Timeout/' + this.platform.spaId, {
         'timeout': value as number / 60, 
-      })
+      }, { cache: { update: { 'Timeout': 'delete' } } })
         .then(() => {
           resolve;
         })
@@ -654,7 +654,7 @@ export class SpaNETPlatformAccessory {
     // getBlowerSpeed - Get the speed for the spa blower
     // Returns - number (1-5)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+      this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId, { id: 'PumpsAndBlower' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Blower Speed ->', response.data.pumpAndBlower.blower.blowerVariableSpeed as number);
           resolve(response.data.pumpAndBlower.blower.blowerVariableSpeed as number);
@@ -672,7 +672,7 @@ export class SpaNETPlatformAccessory {
     // setBlowerSpeed - Set the speed for the spa blower
     // Input - number (1-5)
     return new Promise((resolve, reject) => {
-      this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId)
+      this.platform.spanetapi.get('/PumpsAndBlower/Get/' + this.platform.spaId, { id: 'PumpsAndBlower' })
         .then((response) => {
           const blowerModeRaw = response.data.pumpAndBlower.blower.blowerStatus as string;
           const blowerMode = blowerModeRaw === 'vari' ? 2 : blowerModeRaw === 'ramp' ? 3 : 1;
@@ -681,7 +681,7 @@ export class SpaNETPlatformAccessory {
             'deviceId': this.platform.spaId,
             'modeId': blowerMode,
             'speed': value as number,
-          })
+          }, { cache: { update: { 'PumpsAndBlower': 'delete' } } })
             .then(() => {
               resolve;
             })
@@ -702,7 +702,7 @@ export class SpaNETPlatformAccessory {
     // getBrightness - Get the brightness for the spa lights
     // Returns - number (1-5)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Lights/GetLightDetails/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Lights/GetLightDetails/' + this.platform.spaId, { id: 'LightDetails' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Lights Brightness ->', response.data.lightBrightness as number);
           resolve(response.data.lightBrightness as number);
@@ -723,7 +723,7 @@ export class SpaNETPlatformAccessory {
       this.platform.spanetapi.put('/Lights/SetLightBrightness/' + this.accessory.context.device.apiId, {
         'deviceId': this.platform.spaId,
         'brightness': value as number,
-      })
+      }, { cache: { update: { 'LightDetails': 'delete' } } })
         .then(() => {
           resolve;
         })
@@ -740,7 +740,7 @@ export class SpaNETPlatformAccessory {
     // getLock - Get the lock state for the keypad lock
     // Returns - number (0 - Off, 1 - On)
     return new Promise<number>((resolve, reject) => {
-      this.platform.spanetapi.get('/Settings/Lock/' + this.platform.spaId)
+      this.platform.spanetapi.get('/Settings/Lock/' + this.platform.spaId, { id: 'Lock' })
         .then((response) => {
           this.platform.log.debug('Get Characteristic Lock State ->', response.data as number === 1 ? 0 : 1);
           resolve(response.data as number === 1 ? 0 : 1);
@@ -760,7 +760,7 @@ export class SpaNETPlatformAccessory {
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/Lock/' + this.platform.spaId, {
         'lockMode': value as number === 0 ? 1 : 2,    
-      })
+      }, { cache: { update: { 'Lock': 'delete' } } })
         .then(() => {
           resolve;
         })

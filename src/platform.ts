@@ -22,7 +22,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
-      this.userdeviceid = crypto.randomUUID();
+      this.userdeviceid = this.uuid();
       // Check if the spa is linked and register it's accessories
       this.registerDevices();
     });
@@ -39,9 +39,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
   spanetapi = setupCache(axiosRateLimit(this.baseapi, { maxRPS: 3 }), {
     headerInterpreter: () => {
-      return 1; 
+      return 6;
     },
-    storage: buildMemoryStorage ( false, 1000, false ),
+    storage: buildMemoryStorage ( false, 6000, false ),
   });
 
   accessToken = '';
@@ -69,7 +69,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     // Parse through user config and check that the user and selected spa are valid
     if (this.config.email !== '' && this.config.password !== '' && this.config.spaName !== '') {
 
-      // First, login to API with their username and encrypted password key to see if the user exists, otherwise cancel registration
+      // First, login to API with their email and password to see if the user exists, otherwise cancel registration
       this.spanetapi.post('/Login/Authenticate', {
         'email': this.config.email,
         'password': this.config.password,
@@ -137,18 +137,18 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     this.log.info('Logged in successfully, fetch data for ' + this.config.spaName + '...');
 
     // Request spa pumps and blower details
-    this.spanetapi.get('/PumpsAndBlower/Get/' + this.spaId)
+    this.spanetapi.get('/PumpsAndBlower/Get/' + this.spaId, { id: 'PumpsAndBlower' })
       .then((response) => {
         const blowerId = response.data.pumpAndBlower.blower.id;
         const pumps = response.data.pumpAndBlower.pumps;
 
         // Request spa lights details
-        this.spanetapi.get('/Lights/GetLightDetails/' + this.spaId)
+        this.spanetapi.get('/Lights/GetLightDetails/' + this.spaId, { id: 'LightDetails' })
           .then((response) => {
             const lightId = response.data.lightId;
 
             // Request spa sleep timers details
-            this.spanetapi.get('/SleepTimers/' + this.spaId)
+            this.spanetapi.get('/SleepTimers/' + this.spaId, { id: 'SleepTimers' })
               .then((response) => {
                 const sleepTimers = response.data;
     
@@ -275,5 +275,12 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     const decoded = JSON.parse(decodedJson);
     const exp = decoded.exp;
     return exp;
+  }
+
+  uuid(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 }
