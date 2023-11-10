@@ -1,6 +1,5 @@
 import axios from 'axios';
-import axiosRateLimit from 'axios-rate-limit';
-import { setupCache, buildMemoryStorage } from 'axios-cache-interceptor';
+import axiosRetry from 'axios-retry';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SpaNETPlatformAccessory } from './platformAccessory';
@@ -22,26 +21,41 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', () => {
       log.debug('Executed didFinishLaunching callback');
+      // Generate a random user device ID for the session
       this.userdeviceid = this.uuid();
+
+      // API rate limit
+      axiosRetry(this.spanetapi, {
+        retries: 5,
+        retryCondition: error => error.response === undefined ? false : error.response.status === 429,
+        shouldResetTimeout: true,
+        retryDelay: () => {
+          if (this.#apiRateLimitResets > 0) {
+            return this.#apiRateLimitResets - Date.now();
+          }
+          return 1000;
+        },
+      });
+
+      this.spanetapi.interceptors.response.use(response => {
+        if (response.headers['x-rate-limit-reset'] !== undefined) {
+          this.#apiRateLimitResets = Date.parse(response.headers['x-rate-limit-reset']);
+        }
+        return response;
+      }, error => {
+        return Promise.reject(error);
+      });
+
       // Check if the spa is linked and register it's accessories
       this.registerDevices();
     });
   }
 
-  baseapi = axios.create ({
+  spanetapi = axios.create ({
     baseURL: 'https://app.spanet.net.au/api',
     timeout: 2000,
     headers: {'User-Agent': 'SpaNET/2 CFNetwork/1465.1 Darwin/23.0.0'},
-    validateStatus: function (status) {
-      return status === 200; 
-    },
-  });
-
-  spanetapi = setupCache(axiosRateLimit(this.baseapi, { maxRPS: 3 }), {
-    headerInterpreter: () => {
-      return 6;
-    },
-    storage: buildMemoryStorage ( false, 6000, false ),
+    validateStatus: status => status === 200,
   });
 
   accessToken = '';
@@ -49,6 +63,49 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   refreshToken = '';
   spaId = 0;
   userdeviceid = '';
+
+  #apiRateLimitResets = 0;
+  apiData = { [Endpoint.information]: {}, [Endpoint.dashboard]: {}, [Endpoint.pumps]: {}, [Endpoint.lights]: {} };
+  
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async spaData(endpoint: Endpoint): Promise<any> {
+    if (this.apiData[endpoint]['apiRefreshing']) {
+      return new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+          if (this.apiData[endpoint]['apiRefreshing']) {
+            return;
+          }
+          clearInterval(interval);
+          if (this.apiData[endpoint]['apiSuccess']) {
+            resolve(this.apiData[endpoint]);
+          } else {
+            reject();
+          }
+        }, 100);
+      });
+    } else {
+      if (this.apiData[endpoint]['apiSuccess'] && this.apiData[endpoint]['apiExpiry'] > Date.now()) {
+        return new Promise(resolve => resolve(this.apiData[endpoint]));
+      }
+      this.apiData[endpoint]['apiRefreshing'] = true;
+      return new Promise((resolve, reject) => {
+        this.spanetapi.get(endpoint + this.spaId)
+          .then(response => {
+            this.apiData[endpoint] = endpoint === Endpoint.pumps ? response.data.pumpAndBlower : response.data;
+            this.apiData[endpoint]['apiSuccess'] = true;
+            this.apiData[endpoint]['apiExpiry'] = Date.now() + 3000;
+            this.apiData[endpoint]['apiRefreshing'] = false;
+            resolve(this.apiData[endpoint]);
+          })
+          .catch(error => {
+            this.log.error(error);
+            this.apiData[endpoint]['apiSuccess'] = false;
+            this.apiData[endpoint]['apiRefreshing'] = false;
+            reject(); 
+          });
+      });
+    }
+  }
 
   /**
    * This function is invoked when homebridge restores cached accessories from disk at startup.
@@ -76,7 +133,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
         'userDeviceId': this.userdeviceid,
         'language': 'en',
       })
-        .then((response) => {
+        .then(response => {
           const accessToken = response.data.access_token;
           const accessTokenExpiry = this.tokenExpiry(accessToken);
           const refreshToken = response.data.refresh_token;
@@ -84,7 +141,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   
           // Now that the user has successfully logged in, check that the spa that is set exists on their account
           this.spanetapi.get('/Devices')
-            .then((response) => {
+            .then(response => {
               if (response.data.devices.length > 0) {
                 let spaFound = false;
                 for (const spa of response.data.devices) {
@@ -113,7 +170,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                             + 'issue and reboot Homebridge to re-attempt setup.');
               }
             })
-            .catch((error) => {
+            .catch(error => {
               this.log.error('Error: Unable to obtain spa details from member, but login was successful. Please '
                            + 'check your network connection, or open an issue on GitHub (unexpected).');
               this.log.error(error);
@@ -137,19 +194,19 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     this.log.info('Logged in successfully, fetch data for ' + this.config.spaName + '...');
 
     // Request spa pumps and blower details
-    this.spanetapi.get('/PumpsAndBlower/Get/' + this.spaId, { id: 'PumpsAndBlower' })
-      .then((response) => {
+    this.spanetapi.get('/PumpsAndBlower/Get/' + this.spaId)
+      .then(response => {
         const blowerId = response.data.pumpAndBlower.blower.id;
         const pumps = response.data.pumpAndBlower.pumps;
 
         // Request spa lights details
-        this.spanetapi.get('/Lights/GetLightDetails/' + this.spaId, { id: 'LightDetails' })
-          .then((response) => {
+        this.spanetapi.get('/Lights/GetLightDetails/' + this.spaId)
+          .then(response => {
             const lightId = response.data.lightId;
 
             // Request spa sleep timers details
-            this.spanetapi.get('/SleepTimers/' + this.spaId, { id: 'SleepTimers' })
-              .then((response) => {
+            this.spanetapi.get('/SleepTimers/' + this.spaId)
+              .then(response => {
                 const sleepTimers = response.data;
     
                 // Register/deregister each device for components of spa
@@ -244,7 +301,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                   }
                 }
               })
-              .catch((error) => {
+              .catch(error => {
                 this.log.error('Error: Unable to obtain spa sleep timers details, but login was successful. Please '
                              + 'check your network connection, or open an issue on GitHub (unexpected).');
                 this.log.error(error);
@@ -253,7 +310,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
               });
 
           })
-          .catch((error) => {
+          .catch(error => {
             this.log.error('Error: Unable to obtain spa lights details, but login was successful. Please '
                          + 'check your network connection, or open an issue on GitHub (unexpected).');
             this.log.error(error);
@@ -261,7 +318,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
           });
 
       })
-      .catch((error) => {
+      .catch(error => {
         this.log.error('Error: Unable to obtain spa jets and blower details, but login was successful. '
                      + 'Please check your network connection, or open an issue on GitHub (unexpected).');
         this.log.error(error);
@@ -283,4 +340,11 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       return v.toString(16);
     });
   }
+}
+
+export enum Endpoint {
+  information = '/Information/',
+  dashboard = '/Dashboard/',
+  pumps = '/PumpsAndBlower/Get/',
+  lights = '/Lights/GetLightDetails/',
 }

@@ -10,19 +10,33 @@
         "title": "Email",
         "type": "string",
         "required": true,
-        "description": "Email which you use to log into the SpaLINK app"
+        "description": "Email which you use to log into the SmartLink app"
       },
       "password": {
         "title": "Password",
         "type": "string",
         "required": true,
-        "description": "Password of your SpaLINK app account"
+        "description": "Password of your SmartLink app account"
       },
       "spaName": {
         "title": "Spa Name",
         "type": "string",
         "required": true,
-        "description": "Name of the spa as seen in the SpaLINK app"
+        "description": "Name of the spa as seen in the SmartLink app"
+      },
+      "fullLock": {
+        "title": "Full Keypad Lock",
+        "type": "boolean",
+        "default": false,
+        "required": true,
+        "description": "Use full keypad lock mode when turning keypad lock on in Home app (off - partial mode)"
+      },
+      "highPowerSave": {
+        "title": "High Power Save Mode",
+        "type": "boolean",
+        "default": false,
+        "required": true,
+        "description": "Use high power save mode when turning power save on in Home app (off - low mode)"
       }
     }
   },
@@ -38,6 +52,16 @@
         }
       ]
     },
-    "spaName"
+    "spaName",
+    {
+      "type": "section",
+      "title": "Options",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "fullLock",
+        "highPowerSave"
+      ]
+    }
   ]
 }

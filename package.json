@@ -1,7 +1,7 @@
 {
   "displayName": "Homebridge SpaNET",
   "name": "homebridge-spanet",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Homebridge plugin to control Australian SpaNET spa's with the WiFi SpaLINK plugin module",
   "license": "Apache-2.0",
   "repository": {
@@ -27,8 +27,7 @@
   ],
   "dependencies": {
     "axios": "^1.0.0",
-    "axios-cache-interceptor": "^1.0.0",
-    "axios-rate-limit": "^1.0.0"
+    "axios-retry": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^14.18.63",

@@ -33,7 +33,7 @@ Here is the things you can control using this plugin through HomeKit:
 * Turn on and off clean cycle for the spa
 * Turn on and off the keypad lock
 * Set the operation mode (normal, economy, away or weekends mode)
-* Turn on and off power saving mode (will set to power save low mode)
+* Turn on and off power saving mode
 * Turn on and off sleep timers (uses already set configuration)
 
 <p align="center">
@@ -41,8 +41,8 @@ Here is the things you can control using this plugin through HomeKit:
 </p>
 
 # Upcoming Features
-Here are the features planned for v2.1 or future releases:
-* Give option for default power save mode in Homebridge settings (LOW or HIGH) and default keypad lock mode (FULL or PARTIAL)
+Here are the features planned for v2.2 or future releases:
+* Show how long sanitise cycle has remaining
 * Allow controlling of lights hue/saturation/colour in HomeKit
 * Show how long jets have left before they timeout when they are on - likely not possible however
 * Allow multiple spa's to be exposed to HomeKit
