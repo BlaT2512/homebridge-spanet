@@ -3,6 +3,7 @@
 </p>
 
 # homebridge-spanet
+[![verified-by-homebridge](https://badgen.net/badge/homebridge/verified/purple)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 <a href="https://www.npmjs.com/package/homebridge-spanet"><img src="https://img.shields.io/npm/v/homebridge-spanet" title="npm"></a>
 <a href="https://www.npmjs.com/package/homebridge-spanet"><img src="https://badgen.net/badge/icon/typescript?icon=typescript&label" title="npm"></a>
 
