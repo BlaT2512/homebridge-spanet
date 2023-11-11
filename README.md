@@ -30,7 +30,7 @@ Here is the things you can control using this plugin through HomeKit:
 * Turn on and off the spa lights (the lights will use the last set mode) and change the brightness - colour coming soon
 * Turn on and off the blower (variable mode) and change the speed
 * Turn on and off any jets on the spa and set the jet timeout
-* Turn on and off clean cycle for the spa
+* Turn on and off clean cycle for the spa and see time remaining
 * Turn on and off the keypad lock
 * Set the operation mode (normal, economy, away or weekends mode)
 * Turn on and off power saving mode
@@ -42,7 +42,6 @@ Here is the things you can control using this plugin through HomeKit:
 
 # Upcoming Features
 Here are the features planned for v2.2 or future releases:
-* Show how long sanitise cycle has remaining
 * Allow controlling of lights hue/saturation/colour in HomeKit
 * Show how long jets have left before they timeout when they are on - likely not possible however
 * Allow multiple spa's to be exposed to HomeKit
