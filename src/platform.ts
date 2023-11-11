@@ -27,13 +27,29 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       // API rate limit
       axiosRetry(this.spanetapi, {
         retries: 5,
-        retryCondition: error => error.response === undefined ? false : error.response.status === 429,
+        retryCondition: error => error.response === undefined ? false : error.response.status === 429 || error.response.status === 401,
         shouldResetTimeout: true,
         retryDelay: () => {
           if (this.#apiRateLimitResets > 0) {
             return this.#apiRateLimitResets - Date.now();
           }
           return 1000;
+        },
+        onRetry: async (_, error, requestConfig) => {
+          if (error.response !== undefined && error.response.status === 401) {
+            try {
+              const response = await this.spanetapi.post('/OAuth/Token', {
+                'refreshToken': this.refreshToken,
+                'userDeviceId': this.userdeviceid,
+              });
+              this.accessToken = response.data.access_token;
+              this.refreshToken = response.data.refresh_token;
+              this.spanetapi.defaults.headers.common['Authorization'] = 'Bearer ' + this.accessToken;
+              requestConfig.headers!['Authorization'] = 'Bearer ' + this.accessToken;
+            } catch (error) {
+              this.log.error('Failed to refresh auth token', error);
+            }
+          }
         },
       });
 
@@ -229,9 +245,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     deviceClass: 'Lock',
                   },
                   {
-                    deviceId: 'spanet.controlswitch.sanitise',
+                    deviceId: 'spanet.valve.sanitise',
                     displayName: 'Clean',
-                    deviceClass: 'SanitiseSwitch',
+                    deviceClass: 'Sanitise',
                   },
                   {
                     deviceId: 'spanet.controlswitch.operationmode',
@@ -270,6 +286,14 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     deviceClass: 'SleepSwitch',
                     apiId: sleepTimer.id,
                   });
+                }
+
+                // Remove old clean switch if still cached when user updates to version 2.1.1
+                const oldClean = this.accessories.find(accessory =>
+                  accessory.UUID === this.api.hap.uuid.generate('spanet.controlswitch.sanitise'),
+                );
+                if (oldClean) {
+                  this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [oldClean]);
                 }
     
                 // Repeat for each device in the list

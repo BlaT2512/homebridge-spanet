@@ -60,7 +60,7 @@ export class SpaNETPlatformAccessory {
           .onGet(this.getValve.bind(this));
         
         this.service[0].getCharacteristic(this.platform.Characteristic.ValveType) // Type of valve this is
-          .onGet(() => this.platform.Characteristic.ValveType.WATER_FAUCET);
+          .onGet(() => this.platform.Characteristic.ValveType.SHOWER_HEAD);
         
         this.service[0].getCharacteristic(this.platform.Characteristic.SetDuration) // How long the timeout for jet is
           .onGet(this.getTimeout.bind(this))
@@ -80,8 +80,8 @@ export class SpaNETPlatformAccessory {
         
         this.service[0].getCharacteristic(this.platform.Characteristic.RotationSpeed) // Speed of the blower
           .onGet(this.getBlowerSpeed.bind(this))
-          .onSet(this.setBlowerSpeed.bind(this))
-          .setProps({minValue: 0, maxValue: 5, minStep: 1});
+          .onSet(this.debounce(this.setBlowerSpeed.bind(this)))
+          .setProps({minValue: 0, maxValue: 100, minStep: 20});
         break;
       
       case 'Lights': // Lightbulb
@@ -96,7 +96,7 @@ export class SpaNETPlatformAccessory {
 
         this.service[0].getCharacteristic(this.platform.Characteristic.Brightness) // Brightness of the lights
           .onGet(this.getBrightness.bind(this))
-          .onSet(this.setBrightness.bind(this))
+          .onSet(this.debounce(this.setBrightness.bind(this)))
           .setProps({minValue: 0, maxValue: 100, minStep: 20});
         break;
       
@@ -112,6 +112,27 @@ export class SpaNETPlatformAccessory {
         this.service[0].getCharacteristic(this.platform.Characteristic.LockTargetState) // Whether the keypad lock should be unlocked/locked
           .onGet(this.getLock.bind(this))
           .onSet(this.setLock.bind(this));
+        break;
+
+      case 'Sanitise': // Valve
+        this.service = [
+          this.accessory.getService(this.platform.Service.Valve) ||
+          this.accessory.addService(this.platform.Service.Valve),
+        ];
+        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
+        this.service[0].getCharacteristic(this.platform.Characteristic.Active) // Whether the sanitise cycle is on
+          .onGet(this.getOn.bind(this))
+          .onSet(this.setOn.bind(this));
+      
+        this.service[0].getCharacteristic(this.platform.Characteristic.InUse) // Whether the sanitise cycle is on
+          .onGet(this.getOn.bind(this));
+      
+        this.service[0].getCharacteristic(this.platform.Characteristic.ValveType) // Type of valve this is
+          .onGet(() => this.platform.Characteristic.ValveType.SHOWER_HEAD);
+      
+        this.service[0].getCharacteristic(this.platform.Characteristic.RemainingDuration) // How long remaining for sanitise cycle
+          .onGet(this.getSanitiseRemaining.bind(this))
+          .setProps({minValue: 0, maxValue: 1200, minStep: 1});
         break;
       
       case 'ModeSwitch': // Operation Mode Switch
@@ -286,6 +307,14 @@ export class SpaNETPlatformAccessory {
     }
   }
 
+  debounce(func, timeout = 500) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => func.apply(this, args), timeout);
+    };
+  }
+
   //////////////////////
   // FUNCTION - GETON //
   //////////////////////
@@ -324,7 +353,7 @@ export class SpaNETPlatformAccessory {
             .catch(() => reject(new Error('Failed to get power save on characteristic for spa device')));
         });
       }
-      case 'SanitiseSwitch': {
+      case 'Sanitise': {
         return new Promise<boolean>((resolve, reject) => {
           this.platform.spaData(Endpoint.dashboard)
             .then(response => {
@@ -356,25 +385,6 @@ export class SpaNETPlatformAccessory {
     }
   }
 
-  //////////////////////////
-  // FUNCTION - CHECKAUTH //
-  //////////////////////////
-  /*async refreshAuth() {
-    if (Date.now() >= this.platform.accessTokenExpiry * 1000) {
-      this.platform.spanetapi.post('/OAuth/Token', {
-        'refreshToken': this.platform.refreshToken,
-        'userDeviceId': this.platform.userdeviceid,
-      })
-        .then(response => {
-
-
-        })
-        .catch(() => throw new Error('Failed to refresh JWT token'));
-    } else {
-      return;
-    }
-  }*/
-
   //////////////////////
   // FUNCTION - SETON //
   //////////////////////
@@ -393,7 +403,10 @@ export class SpaNETPlatformAccessory {
                 'modeId': value as boolean ? 2 : 1,
                 'speed': blowerSpeed,
               })
-                .then (() => resolve())
+                .then(() => {
+                  this.platform.log.debug('Set Characteristic Blower On ->', value);
+                  resolve();
+                })
                 .catch(() => reject(new Error('Failed to set blower on characteristic for spa device')));
             })
             .catch(() => reject(new Error('Failed to set blower on characteristic for spa device')));
@@ -405,7 +418,10 @@ export class SpaNETPlatformAccessory {
             'deviceId': this.platform.spaId,
             'on': value as boolean,
           })
-            .then (() => resolve())
+            .then(() => {
+              this.platform.log.debug('Set Characteristic Lights On ->', value);
+              resolve();
+            })
             .catch(() => reject(new Error('Failed to set lights on characteristic for spa device')));
         });
       }
@@ -414,16 +430,24 @@ export class SpaNETPlatformAccessory {
           this.platform.spanetapi.put('/Settings/PowerSave/' + this.platform.spaId, {
             'mode': value as boolean ? this.platform.config.highPowerSave ? 3 : 2 : 1,
           })
-            .then (() => resolve())
+            .then(() => {
+              this.platform.log.debug('Set Characteristic Power Save On ->', value);
+              resolve();
+            })
             .catch(() => reject(new Error('Failed to set power save on characteristic for spa device')));
         });
       }
-      case 'SanitiseSwitch': {
+      case 'Sanitise': {
         return new Promise((resolve, reject) => {
           this.platform.spanetapi.put('/Settings/SanitiseStatus/' + this.platform.spaId, {
             'on': value as boolean,
           })
-            .then (() => resolve())
+            .then (() => {
+              this.service[0].updateCharacteristic(this.platform.Characteristic.Active, value ? 1 : 0);
+              this.service[0].updateCharacteristic(this.platform.Characteristic.InUse, value ? 1 : 0);
+              this.platform.log.debug('Set Characteristic Sanitise On ->', value);
+              resolve();
+            })
             .catch(() => reject(new Error('Failed to set sanitise on characteristic for spa device')));
         });
       }
@@ -464,7 +488,7 @@ export class SpaNETPlatformAccessory {
   // FUNCTION - GETVALVE //
   /////////////////////////
   async getValve(): Promise<number> {
-    // getLock - Check whether jet is on or off
+    // getValve - Check whether jet is on or off
     // Returns - number (0 - Off, 1 - On)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.pumps)
@@ -487,7 +511,7 @@ export class SpaNETPlatformAccessory {
   // FUNCTION - SETVALVE //
   /////////////////////////
   async setValve(value: CharacteristicValue): Promise<void> {
-    // setLock - Set jet on or off
+    // setValve - Set jet on or off
     // Input - number (0 - Off, 1 - On)
     return new Promise((resolve, reject) => {
       this.platform.spaData(Endpoint.pumps)
@@ -505,7 +529,12 @@ export class SpaNETPlatformAccessory {
             'modeId': value === 1 ? 1 : 2,
             'pumpVariableSpeed': pumpVariableSpeed,
           })
-            .then (() => resolve())
+            .then (() => {
+              this.service[0].updateCharacteristic(this.platform.Characteristic.Active, value);
+              this.service[0].updateCharacteristic(this.platform.Characteristic.InUse, value);
+              this.platform.log.debug('Set Characteristic Jet On ->', value as number === 1);
+              resolve();
+            })
             .catch(() => reject(new Error('Failed to set jet active characteristic for spa device')));
         })
         .catch(() => reject(new Error('Failed to set jet active characteristic for spa device')));
@@ -567,9 +596,13 @@ export class SpaNETPlatformAccessory {
     // Input - number (0 - Off, 1 - Heat, 2 - Cool, 3 - Auto)
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/SetHeatPumpMode/' + this.platform.spaId, {
-        'mode': value === 0 ? 4 : value === 1 ? 2 : value === 2 ? 3 : 1,  
+        'mode': value === 0 ? 4 : value === 1 ? 2 : value === 2 ? 3 : 1,
       })
-        .then (() => resolve())
+        .then (() => {
+          this.service[0].updateCharacteristic(this.platform.Characteristic.TargetHeatingCoolingState, value);
+          this.platform.log.debug('Set Characteristic Target Heating State ->', value);
+          resolve();
+        })
         .catch(() => reject(new Error('Failed to set target heater state characteristic for spa device')));
     });
   }
@@ -616,7 +649,10 @@ export class SpaNETPlatformAccessory {
       this.platform.spanetapi.put('/Dashboard/' + this.platform.spaId, {
         'temperature': value as number * 10,  
       })
-        .then (() => resolve())
+        .then(() => {
+          this.platform.log.debug('Set Characteristic Target Temperature ->', value);
+          resolve();
+        })
         .catch(() => reject(new Error('Failed to set target temperature characteristic for spa device')));
     });
   }
@@ -647,7 +683,10 @@ export class SpaNETPlatformAccessory {
       this.platform.spanetapi.put('/Settings/Timeout/' + this.platform.spaId, {
         'timeout': value as number / 60, 
       })
-        .then (() => resolve())
+        .then(() => {
+          this.platform.log.debug('Set Characteristic Jet Timeout ->', value);
+          resolve();
+        })
         .catch(() => reject(new Error('Failed to set jet active characteristic for spa device')));
     });
   }
@@ -657,12 +696,12 @@ export class SpaNETPlatformAccessory {
   ///////////////////////////////
   async getBlowerSpeed(): Promise<number> {
     // getBlowerSpeed - Get the speed for the spa blower
-    // Returns - number (1-5)
+    // Returns - number (0-100 %)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.pumps)
         .then(response => {
-          this.platform.log.debug('Get Characteristic Blower Speed ->', response.blower.blowerVariableSpeed as number);
-          resolve(response.blower.blowerVariableSpeed as number);
+          this.platform.log.debug('Get Characteristic Blower Speed ->', response.blower.blowerVariableSpeed as number * 20);
+          resolve(response.blower.blowerVariableSpeed as number * 20);
         })
         .catch(() => reject(new Error('Failed to get blower speed characteristic for spa device')));
     });
@@ -673,15 +712,25 @@ export class SpaNETPlatformAccessory {
   ///////////////////////////////
   async setBlowerSpeed(value: CharacteristicValue): Promise<void> {
     // setBlowerSpeed - Set the speed for the spa blower
-    // Input - number (1-5)
+    // Input - number (0-100 %)
+    const roundedValue = Math.ceil(value as number / 20) * 20;
     return new Promise((resolve, reject) => {
-      this.platform.spanetapi.put('/PumpsAndBlower/SetBlower/' + this.accessory.context.device.apiId, {
-        'deviceId': this.platform.spaId,
-        'modeId': 2,
-        'speed': value as number,
-      })
-        .then (() => resolve())
-        .catch(() => reject(new Error('Failed to set blower speed characteristic for spa device')));
+      if (roundedValue > 0) {
+        this.platform.spanetapi.put('/PumpsAndBlower/SetBlower/' + this.accessory.context.device.apiId, {
+          'deviceId': this.platform.spaId,
+          'modeId': 2,
+          'speed': roundedValue / 20,
+        })
+          .then(() => {
+            this.service[0].updateCharacteristic(this.platform.Characteristic.On, true);
+            this.service[0].updateCharacteristic(this.platform.Characteristic.RotationSpeed, roundedValue);
+            this.platform.log.debug('Set Characteristic Blower Speed ->', roundedValue);
+            resolve();
+          })
+          .catch(() => reject(new Error('Failed to set blower speed characteristic for spa device')));
+      } else {
+        resolve();
+      }
     });
   }
 
@@ -706,14 +755,24 @@ export class SpaNETPlatformAccessory {
   //////////////////////////////
   async setBrightness(value: CharacteristicValue): Promise<void> {
     // setBrightness - Set the brightness for the spa lights
-    // Input - number (0-100 %%)
+    // Input - number (0-100 %)
+    const roundedValue = Math.ceil(value as number / 20) * 20;
     return new Promise((resolve, reject) => {
-      this.platform.spanetapi.put('/Lights/SetLightBrightness/' + this.accessory.context.device.apiId, {
-        'deviceId': this.platform.spaId,
-        'brightness': value as number / 20,
-      })
-        .then (() => resolve())
-        .catch(() => reject(new Error('Failed to set lights brightness characteristic for spa device')));
+      if (roundedValue > 0) {
+        this.platform.spanetapi.put('/Lights/SetLightBrightness/' + this.accessory.context.device.apiId, {
+          'deviceId': this.platform.spaId,
+          'brightness': roundedValue / 20,
+        })
+          .then(() => {
+            //this.service[0].updateCharacteristic(this.platform.Characteristic.On, true);
+            this.service[0].updateCharacteristic(this.platform.Characteristic.Brightness, roundedValue);
+            this.platform.log.debug('Set Characteristic Lights Brightness ->', roundedValue);
+            resolve();
+          })
+          .catch(() => reject(new Error('Failed to set lights brightness characteristic for spa device')));
+      } else {
+        resolve();
+      }
     });
   }
 
@@ -743,8 +802,39 @@ export class SpaNETPlatformAccessory {
       this.platform.spanetapi.put('/Settings/Lock/' + this.platform.spaId, {
         'lockMode': value as number === 0 ? 1 : this.platform.config.fullLock ? 3 : 2,
       })
-        .then (() => resolve())
+        .then (() => {
+          this.service[0].updateCharacteristic(this.platform.Characteristic.LockCurrentState, value);
+          this.service[0].updateCharacteristic(this.platform.Characteristic.LockTargetState, value);
+          this.platform.log.debug('Set Characteristic Lock State ->', value as number === 1);
+          resolve();
+        })
         .catch(() => reject(new Error('Failed to set lock on characteristic for spa device')));
+    });
+  }
+
+  /////////////////////////////////////
+  // FUNCTION - GETSANITISEREMAINING //
+  /////////////////////////////////////
+  async getSanitiseRemaining(): Promise<number> {
+    // getSanitiseRemaining - Get the time remaining for the sanitise cycle
+    // Returns - number (0-1200 seconds)
+    return new Promise<number>((resolve, reject) => {
+      this.platform.spaData(Endpoint.dashboard)
+        .then(response => {
+          let found = false;
+          for (const item of response.statusList) {
+            if (item.includes('Sanitise Cycle: ')) {
+              found = true;
+              const rawTime = item.replace('Sanitise Cycle: ', '').split(':');
+              this.platform.log.debug('Get Characteristic Sanitise Remaining ->', Number(rawTime[0])*60 + Number(rawTime[1]));
+              resolve(Number(rawTime[0])*60 + Number(rawTime[1]));
+            }
+          }
+          if (!found) {
+            resolve(0);
+          }
+        })
+        .catch(() => reject(new Error('Failed to get lock on characteristic for spa device')));
     });
   }
 }
