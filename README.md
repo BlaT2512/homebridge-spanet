@@ -16,6 +16,8 @@ npm i -g homebridge-spanet
 ```
 NOTE: For best performance, and due to the number of accessories this device exposes it is recommended you run this plugin on a child bridge (Homebridge Web Interface > Plugins > homebridge-spanet > Bridge Settings).
 
+This also makes it easy to add the bridge in the Home app and create a room for the Spa, making all the spa accessories in their own room.
+
 # Setup
 Configure the plugin in Homebridge Web Interface > Plugins > homebridge-spanet > Settings
 
