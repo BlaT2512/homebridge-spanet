@@ -1,7 +1,7 @@
 {
   "pluginAlias": "SpaNETPlugin",
   "pluginType": "platform",
-  "singular": true,
+  "singular": false,
   "footerDisplay": "For support visit [GitHub repository](https://github.com/BlaT2512/homebridge-spanet)",
   "schema": {
     "type": "object",

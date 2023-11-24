@@ -1,9 +1,10 @@
 import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 import { SpaNETHomebridgePlatform, Endpoint } from './platform';
 
-////////////////////////
-// PLATFORM ACCESSORY //
-////////////////////////
+/**
+ * SpaNET Platform Accessory
+ * Exposes all the services for the spa elements to Homebridge and controls them
+ */
 export class SpaNETPlatformAccessory {
   private service: Array<Service>;
 
@@ -14,7 +15,7 @@ export class SpaNETPlatformAccessory {
 
     // Set accessory information
     this.accessory.getService(this.platform.Service.AccessoryInformation)!
-      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Blake Tourneur')
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'SpaNET')
       .setCharacteristic(this.platform.Characteristic.Model, accessory.context.device.deviceId)
       .setCharacteristic(this.platform.Characteristic.SerialNumber, accessory.context.device.deviceId);
 
@@ -157,141 +158,125 @@ export class SpaNETPlatformAccessory {
         this.service[2].setCharacteristic(this.platform.Characteristic.Name, 'Away');
         this.service[3].setCharacteristic(this.platform.Characteristic.Name, 'Week');
         this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .onGet(async () => {
-            return new Promise<boolean>((resolve, reject) => {
-              this.platform.spaData(Endpoint.information)
-                .then(response => {
-                  const opermode = response.information.settingsSummary.operationMode as string;
-                  this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
-                  resolve(opermode === 'NORM');  
-                })
-                .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
-            });
-          })
-          .onSet(async value => {
-            return new Promise((resolve, reject) => {
-              if (!value as boolean) {
-                this.service[0].updateCharacteristic(this.platform.Characteristic.On, true);
-                this.platform.log.debug('Set Characteristic Operation Mode ->', false);
-                resolve();
+          .onGet(async () => new Promise<boolean>((resolve, reject) => {
+            this.platform.spaData(Endpoint.information)
+              .then(response => {
+                const opermode = response.information.settingsSummary.operationMode as string;
+                this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
+                resolve(opermode === 'NORM');  
+              })
+              .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
+          }))
+          .onSet(async value => new Promise((resolve, reject) => {
+            if (!value as boolean) {
+              this.service[0].updateCharacteristic(this.platform.Characteristic.On, true);
+              this.platform.log.debug('Set Characteristic Operation Mode ->', false);
+              resolve();
         
-              } else {
-                this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
-                  'mode': 1,
+            } else {
+              this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
+                'mode': 1,
+              })
+                .then(() => {
+                  this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.platform.log.debug('Set Characteristic Operation Mode ->', 1);
+                  resolve();
                 })
-                  .then(() => {
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.platform.log.debug('Set Characteristic Operation Mode ->', 1);
-                    resolve();
-                  })
-                  .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
-              }
-            });
-          });
+                .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
+            }
+          }));
         this.service[1].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .onGet(async () => {
-            return new Promise<boolean>((resolve, reject) => {
-              this.platform.spaData(Endpoint.information)
-                .then(response => {
-                  const opermode = response.information.settingsSummary.operationMode as string;
-                  this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
-                  resolve(opermode === 'ECON');  
-                })
-                .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
-            });
-          })
-          .onSet(async value => {
-            return new Promise((resolve, reject) => {
-              if (!value as boolean) {
-                this.service[1].updateCharacteristic(this.platform.Characteristic.On, true);
-                this.platform.log.debug('Set Characteristic Operation Mode ->', false);
-                resolve();
+          .onGet(async () => new Promise<boolean>((resolve, reject) => {
+            this.platform.spaData(Endpoint.information)
+              .then(response => {
+                const opermode = response.information.settingsSummary.operationMode as string;
+                this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
+                resolve(opermode === 'ECON');  
+              })
+              .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
+          }))
+          .onSet(async value => new Promise((resolve, reject) => {
+            if (!value as boolean) {
+              this.service[1].updateCharacteristic(this.platform.Characteristic.On, true);
+              this.platform.log.debug('Set Characteristic Operation Mode ->', false);
+              resolve();
         
-              } else {
-                this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
-                  'mode': 2,
+            } else {
+              this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
+                'mode': 2,
+              })
+                .then(() => {
+                  this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.platform.log.debug('Set Characteristic Operation Mode ->', 2);
+                  resolve();
                 })
-                  .then(() => {
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.platform.log.debug('Set Characteristic Operation Mode ->', 2);
-                    resolve();
-                  })
-                  .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
-              }
-            });
-          });
+                .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
+            }
+          }));
         this.service[2].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .onGet(async () => {
-            return new Promise<boolean>((resolve, reject) => {
-              this.platform.spaData(Endpoint.information)
-                .then(response => {
-                  const opermode = response.information.settingsSummary.operationMode as string;
-                  this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
-                  resolve(opermode === 'AWAY');  
-                })
-                .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
-            });
-          })
-          .onSet(async value => {
-            return new Promise((resolve, reject) => {
-              if (!value as boolean) {
-                this.service[2].updateCharacteristic(this.platform.Characteristic.On, true);
-                this.platform.log.debug('Set Characteristic Operation Mode ->', false);
-                resolve();
+          .onGet(async () => new Promise<boolean>((resolve, reject) => {
+            this.platform.spaData(Endpoint.information)
+              .then(response => {
+                const opermode = response.information.settingsSummary.operationMode as string;
+                this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
+                resolve(opermode === 'AWAY');  
+              })
+              .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
+          }))
+          .onSet(async value => new Promise((resolve, reject) => {
+            if (!value as boolean) {
+              this.service[2].updateCharacteristic(this.platform.Characteristic.On, true);
+              this.platform.log.debug('Set Characteristic Operation Mode ->', false);
+              resolve();
         
-              } else {
-                this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
-                  'mode': 3,
+            } else {
+              this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
+                'mode': 3,
+              })
+                .then(() => {
+                  this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.platform.log.debug('Set Characteristic Operation Mode ->', 3);
+                  resolve();
                 })
-                  .then(() => {
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[3].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.platform.log.debug('Set Characteristic Operation Mode ->', 3);
-                    resolve();
-                  })
-                  .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
-              }
-            });
-          });
+                .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
+            }
+          }));
         this.service[3].getCharacteristic(this.platform.Characteristic.On) // Whether the switch is on
-          .onGet(async () => {
-            return new Promise<boolean>((resolve, reject) => {
-              this.platform.spaData(Endpoint.information)
-                .then(response => {
-                  const opermode = response.information.settingsSummary.operationMode as string;
-                  this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
-                  resolve(opermode === 'WEEK');  
-                })
-                .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
-            });
-          })
-          .onSet(async value => {
-            return new Promise((resolve, reject) => {
-              if (!value as boolean) {
-                this.service[3].updateCharacteristic(this.platform.Characteristic.On, true);
-                this.platform.log.debug('Set Characteristic Operation Mode ->', false);
-                resolve();
+          .onGet(async () => new Promise<boolean>((resolve, reject) => {
+            this.platform.spaData(Endpoint.information)
+              .then(response => {
+                const opermode = response.information.settingsSummary.operationMode as string;
+                this.platform.log.debug('Get Characteristic Operation Mode ->', opermode);
+                resolve(opermode === 'WEEK');  
+              })
+              .catch(() => reject(new Error('Failed to get operation mode characteristic for spa device')));
+          }))
+          .onSet(async value => new Promise((resolve, reject) => {
+            if (!value as boolean) {
+              this.service[3].updateCharacteristic(this.platform.Characteristic.On, true);
+              this.platform.log.debug('Set Characteristic Operation Mode ->', false);
+              resolve();
         
-              } else {
-                this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
-                  'mode': 4,
+            } else {
+              this.platform.spanetapi.put('/Settings/OperationMode/' + this.platform.spaId, {
+                'mode': 4,
+              })
+                .then(() => {
+                  this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
+                  this.platform.log.debug('Set Characteristic Operation Mode ->', 4);
+                  resolve();
                 })
-                  .then(() => {
-                    this.service[0].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[1].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.service[2].updateCharacteristic(this.platform.Characteristic.On, false);
-                    this.platform.log.debug('Set Characteristic Operation Mode ->', 4);
-                    resolve();
-                  })
-                  .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
-              }
-            });
-          });
+                .catch(() => reject(new Error('Failed to set operation mode characteristic for spa device')));
+            }
+          }));
         break;
       
       default: // Switch
@@ -315,12 +300,11 @@ export class SpaNETPlatformAccessory {
     };
   }
 
-  //////////////////////
-  // FUNCTION - GETON //
-  //////////////////////
+  /**
+   * getOn - Check whether the switch or device is on/active
+   * @returns {Promise<boolean>} - Whether the device is on/active
+   */
   async getOn(): Promise<boolean> {
-    // getOn - Check whether the switch or device is on/active
-    // Returns - boolean
     switch (this.accessory.context.device.deviceClass) {
       case 'Blower': {
         return new Promise<boolean>((resolve, reject) => {
@@ -385,12 +369,12 @@ export class SpaNETPlatformAccessory {
     }
   }
 
-  //////////////////////
-  // FUNCTION - SETON //
-  //////////////////////
+  /**
+   * setOn - Sets the switch or device's on/active state
+   * @param {boolean} value - Whether the device should be on/active
+   * @returns {Promise}
+   */
   async setOn(value: CharacteristicValue): Promise<void> {
-    // setOn - Sets the switch or device's on/active state
-    // Input - boolean
     switch (this.accessory.context.device.deviceClass) {
       case 'Blower': {
         return new Promise((resolve, reject) => {
@@ -431,7 +415,7 @@ export class SpaNETPlatformAccessory {
             'mode': value as boolean ? this.platform.config.highPowerSave ? 3 : 2 : 1,
           })
             .then(() => {
-              this.platform.log.debug('Set Characteristic Power Save On ->', value);
+              this.platform.log.debug('Set Characteristic Power Save Mode ->', value ? this.platform.config.highPowerSave ? 3 : 2 : 1);
               resolve();
             })
             .catch(() => reject(new Error('Failed to set power save on characteristic for spa device')));
@@ -484,12 +468,11 @@ export class SpaNETPlatformAccessory {
     }
   }
   
-  /////////////////////////
-  // FUNCTION - GETVALVE //
-  /////////////////////////
+  /**
+   * getValve - Check whether jet is on or off
+   * @returns {Promise<number>} - Whether the jet is on (1) or off (0)
+   */
   async getValve(): Promise<number> {
-    // getValve - Check whether jet is on or off
-    // Returns - number (0 - Off, 1 - On)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.pumps)
         .then(response => {
@@ -507,12 +490,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  /////////////////////////
-  // FUNCTION - SETVALVE //
-  /////////////////////////
+  /**
+   * setValve - Sets jet on or off
+   * @param {number} value - Whether the jet should be on (1) or off (0)
+   * @returns {Promise}
+   */
   async setValve(value: CharacteristicValue): Promise<void> {
-    // setValve - Set jet on or off
-    // Input - number (0 - Off, 1 - On)
     return new Promise((resolve, reject) => {
       this.platform.spaData(Endpoint.pumps)
         .then(response => {
@@ -541,12 +524,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ////////////////////////////
-  // FUNCTION - GETCURSTATE //
-  ////////////////////////////
+  /**
+   * getCurState - Check whether the heater is off, heating or cooling
+   * @returns {Promise<number>} - Whether the heater is off (0), heating (1) or cooling (2)
+   */
   async getCurState(): Promise<number> {
-    // getCurState - Check whether the heater is off, heating or cooling
-    // Returns - number (0 - Off, 1 - Heat, 2 - Cool)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.information)
         .then(response => {
@@ -559,9 +541,9 @@ export class SpaNETPlatformAccessory {
             this.platform.spaData(Endpoint.dashboard)
               .then(response => {
                 this.platform.log.debug('Get Characteristic Current Heating State ->',
-                  (response.setTemperature as number - response.currentTemperature as number > 0) ? 1 : 2,
+                  (response.setTemperature as number - response.currentTemperature as number >= 0) ? 1 : 2,
                 );
-                resolve((response.setTemperature as number - response.currentTemperature as number > 0) ? 1 : 2);
+                resolve((response.setTemperature as number - response.currentTemperature as number >= 0) ? 1 : 2);
               })
               .catch(() => reject(new Error('Failed to get current heater state characteristic for spa device')));
           }
@@ -570,12 +552,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  /////////////////////////////
-  // FUNCTION - GETTARGSTATE //
-  /////////////////////////////
+  /**
+   * getTargState - Check whether the heater is set to off, heating, cooling or auto
+   * @returns {Promise<number>} - Whether the heater is set to off (0), heating (1), cooling (2) or auto (3)
+   */
   async getTargState(): Promise<number> {
-    // getTargState - Check whether the heater is set to off, heating, cooling or auto
-    // Returns - number (0 - Off, 1 - Heat, 2 - Cool, 3 - Auto)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.information)
         .then(response => {
@@ -588,12 +569,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  /////////////////////////////
-  // FUNCTION - SETTARGSTATE //
-  /////////////////////////////
+  /**
+   * setTargState - Set the heater mode to off, heat, cool or auto
+   * @param {number} value - Whether the heater should be off (0), heating (1), cooling (2) or auto (3)
+   * @returns {Promise}
+   */
   async setTargState(value: CharacteristicValue): Promise<void> {
-    // setTargState - Set the heater mode to off, heat, cool or auto
-    // Input - number (0 - Off, 1 - Heat, 2 - Cool, 3 - Auto)
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/SetHeatPumpMode/' + this.platform.spaId, {
         'mode': value === 0 ? 4 : value === 1 ? 2 : value === 2 ? 3 : 1,
@@ -607,12 +588,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ///////////////////////////
-  // FUNCTION - GETCURTEMP //
-  ///////////////////////////
+  /**
+   * getCurTemp - Get the current actual water temperature
+   * @returns {Promise<number>} - The current water temperature (-270.0 - 100.0 °C) 
+   */
   async getCurTemp(): Promise<number> {
-    // getCurTemp - Get the current actual water temperature
-    // Returns - number (-270.0 - 100.0 °C)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.dashboard)
         .then(response => {
@@ -623,12 +603,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ////////////////////////////
-  // FUNCTION - GETTARGTEMP //
-  ////////////////////////////
+  /**
+   * getCurTemp - Get the set temperature for the spa water
+   * @returns {Promise<number>} - The set water temperature (5.0 - 41.0 °C) 
+   */
   async getTargTemp(): Promise<number> {
-    // getTargTemp - Get the set temperature for the spa water
-    // Returns - number (5.0 - 41.0 °C)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.dashboard)
         .then(response => {
@@ -639,12 +618,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ////////////////////////////
-  // FUNCTION - SETTARGTEMP //
-  ////////////////////////////
+  /**
+   * setTargTemp - Set the temperature for the spa water
+   * @param {number} value - The target water temperature (5.0 - 41.0 °C) 
+   * @returns {Promise}
+   */
   async setTargTemp(value: CharacteristicValue): Promise<void> {
-    // setTargTemp - Set the temperature for the water heater
-    // Input - number (5.0 - 41.0 °C)
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Dashboard/' + this.platform.spaId, {
         'temperature': value as number * 10,  
@@ -657,12 +636,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ///////////////////////////
-  // FUNCTION - GETTIMEOUT //
-  ///////////////////////////
+  /**
+   * getTimeout - Get the timeout for the spa jets
+   * @returns {Promise<number>} - The jets timeout duration (0-3600 seconds)
+   */
   async getTimeout(): Promise<number> {
-    // getTimeout - Get the timeout for the spa jets
-    // Returns - number (0-3600 seconds)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.information)
         .then(response => {
@@ -673,12 +651,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ///////////////////////////
-  // FUNCTION - SETTIMEOUT //
-  ///////////////////////////
+  /**
+   * setTimeout - Set the timeout for the spa jets
+   * @param {number} value - The target jets timeout duration (0-3600 seconds)
+   * @returns {Promise}
+   */
   async setTimeout(value: CharacteristicValue): Promise<void> {
-    // setTimeout - Set the timeout for the spa jets
-    // Input - number (0-3600 seconds)
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/Timeout/' + this.platform.spaId, {
         'timeout': value as number / 60, 
@@ -691,12 +669,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ///////////////////////////////
-  // FUNCTION - GETBLOWERSPEED //
-  ///////////////////////////////
+  /**
+   * getBlowerSpeed - Get the speed for the spa blower
+   * @returns {Promise<number>} - The blower speed (0-100 %)
+   */
   async getBlowerSpeed(): Promise<number> {
-    // getBlowerSpeed - Get the speed for the spa blower
-    // Returns - number (0-100 %)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.pumps)
         .then(response => {
@@ -707,12 +684,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ///////////////////////////////
-  // FUNCTION - SETBLOWERSPEED //
-  ///////////////////////////////
+  /**
+   * setBlowerSpeed - Set the speed for the spa blower
+   * @param {number} value - The target blower speed (0-100 %)
+   * @returns {Promise}
+   */
   async setBlowerSpeed(value: CharacteristicValue): Promise<void> {
-    // setBlowerSpeed - Set the speed for the spa blower
-    // Input - number (0-100 %)
     const roundedValue = Math.ceil(value as number / 20) * 20;
     return new Promise((resolve, reject) => {
       if (roundedValue > 0) {
@@ -734,12 +711,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  //////////////////////////////
-  // FUNCTION - GETBRIGHTNESS //
-  //////////////////////////////
+  /**
+   * getBrightness - Get the brightness for the spa lights
+   * @returns {Promise<number>} - The lights brightness (0-100 %)
+   */
   async getBrightness(): Promise<number> {
-    // getBrightness - Get the brightness for the spa lights
-    // Returns - number (0-100 %)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.lights)
         .then(response => {
@@ -750,12 +726,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  //////////////////////////////
-  // FUNCTION - SETBRIGHTNESS //
-  //////////////////////////////
+  /**
+   * setBrightness - Set the brightness for the spa lights
+   * @param {number} value - The target lights brightness (0-100 %)
+   * @returns {Promise}
+   */
   async setBrightness(value: CharacteristicValue): Promise<void> {
-    // setBrightness - Set the brightness for the spa lights
-    // Input - number (0-100 %)
     const roundedValue = Math.ceil(value as number / 20) * 20;
     return new Promise((resolve, reject) => {
       if (roundedValue > 0) {
@@ -776,12 +752,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ////////////////////////
-  // FUNCTION - GETLOCK //
-  ////////////////////////
+  /**
+   * getLock - Check whether the keypad lock is on or off
+   * @returns {Promise<number>} - Whether the keypad lock is on (1) or off (0)
+   */
   async getLock(): Promise<number> {
-    // getLock - Get the lock state for the keypad lock
-    // Returns - number (0 - Off, 1 - On)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.information)
         .then(response => {
@@ -792,12 +767,12 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  ////////////////////////
-  // FUNCTION - SETLOCK //
-  ////////////////////////
+  /**
+   * getLock - Sets the keypad lock state to on or off
+   * @param {number} value - Whether the keypad lock should be on (1) or off (0)
+   * @returns {Promise}
+   */
   async setLock(value: CharacteristicValue): Promise<void> {
-    // setLock - Set the lock state for the keypad lock
-    // Input - number (0 - Off, 1 - On)
     return new Promise((resolve, reject) => {
       this.platform.spanetapi.put('/Settings/Lock/' + this.platform.spaId, {
         'lockMode': value as number === 0 ? 1 : this.platform.config.fullLock ? 3 : 2,
@@ -812,12 +787,11 @@ export class SpaNETPlatformAccessory {
     });
   }
 
-  /////////////////////////////////////
-  // FUNCTION - GETSANITISEREMAINING //
-  /////////////////////////////////////
+  /**
+   * getSanitiseRemaining - Get the time remaining for the sanitise cycle
+   * @returns {Promise<number>} - Time remaining for the sanitise cycle (0-1200 seconds), or 0 if the spa is not sanitising
+   */
   async getSanitiseRemaining(): Promise<number> {
-    // getSanitiseRemaining - Get the time remaining for the sanitise cycle
-    // Returns - number (0-1200 seconds)
     return new Promise<number>((resolve, reject) => {
       this.platform.spaData(Endpoint.dashboard)
         .then(response => {

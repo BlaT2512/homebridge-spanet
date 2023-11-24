@@ -45,4 +45,3 @@ Here is the things you can control using this plugin through HomeKit:
 Here are the features planned for v2.2 or future releases:
 * Allow controlling of lights hue/saturation/colour in HomeKit
 * Show how long jets have left before they timeout when they are on - likely not possible however
-* Allow multiple spa's to be exposed to HomeKit

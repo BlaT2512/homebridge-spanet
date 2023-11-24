@@ -4,13 +4,30 @@ import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, 
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SpaNETPlatformAccessory } from './platformAccessory';
 
-/////////////////////////
-// HOMEBRIDGE PLATFORM //
-/////////////////////////
+/**
+ * SpaNET Homebridge Platform
+ * Parses the user config and attempts to connect to and register spas with Homebridge
+ */
 export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   public readonly accessories: PlatformAccessory[] = [];
+
+  spanetapi = axios.create ({
+    baseURL: 'https://app.spanet.net.au/api',
+    timeout: 2000,
+    headers: {'User-Agent': 'SpaNET/2 CFNetwork/1465.1 Darwin/23.0.0'},
+    validateStatus: status => status === 200,
+  });
+
+  accessToken = '';
+  accessTokenExpiry = 0;
+  refreshToken = '';
+  spaId = 0;
+  userdeviceid = '';
+
+  private apiRateLimitResets = 0;
+  apiData = { [Endpoint.information]: {}, [Endpoint.dashboard]: {}, [Endpoint.pumps]: {}, [Endpoint.lights]: {} };
 
   constructor (
     public readonly log: Logger,
@@ -26,13 +43,15 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
       // API rate limit
       axiosRetry(this.spanetapi, {
-        retries: 5,
+        retries: 10,
         retryCondition: error => error.response === undefined ? false : error.response.status === 429 || error.response.status === 401,
         shouldResetTimeout: true,
-        retryDelay: () => {
-          if (this.#apiRateLimitResets > 0) {
-            return this.#apiRateLimitResets - Date.now();
+        retryDelay: retryCount => {
+          if (this.apiRateLimitResets > Date.now() + 100 && retryCount < 4) {
+            this.log.debug('Retry number ' + retryCount + ', waiting ' + (this.apiRateLimitResets - Date.now()));
+            return this.apiRateLimitResets - Date.now();
           }
+          this.log.debug('Retry number ' + retryCount + ' , waiting 1000');
           return 1000;
         },
         onRetry: async (_, error, requestConfig) => {
@@ -55,7 +74,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
 
       this.spanetapi.interceptors.response.use(response => {
         if (response.headers['x-rate-limit-reset'] !== undefined) {
-          this.#apiRateLimitResets = Date.parse(response.headers['x-rate-limit-reset']);
+          this.apiRateLimitResets = Date.parse(response.headers['x-rate-limit-reset']);
         }
         return response;
       }, error => {
@@ -66,25 +85,8 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       this.registerDevices();
     });
   }
-
-  spanetapi = axios.create ({
-    baseURL: 'https://app.spanet.net.au/api',
-    timeout: 2000,
-    headers: {'User-Agent': 'SpaNET/2 CFNetwork/1465.1 Darwin/23.0.0'},
-    validateStatus: status => status === 200,
-  });
-
-  accessToken = '';
-  accessTokenExpiry = 0;
-  refreshToken = '';
-  spaId = 0;
-  userdeviceid = '';
-
-  #apiRateLimitResets = 0;
-  apiData = { [Endpoint.information]: {}, [Endpoint.dashboard]: {}, [Endpoint.pumps]: {}, [Endpoint.lights]: {} };
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async spaData(endpoint: Endpoint): Promise<any> {
+  async spaData(endpoint: Endpoint): Promise<any> { // eslint-disable-line @typescript-eslint/no-explicit-any
     if (this.apiData[endpoint]['apiRefreshing']) {
       return new Promise((resolve, reject) => {
         const interval = setInterval(() => {
@@ -134,11 +136,10 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     this.accessories.push(accessory);
   }
 
-  //////////////////////////
-  // REGISTER ACCESSORIES //
-  //////////////////////////
+  /**
+   * Parses user config and attempts to login to API and match spas to those set by user
+   */
   registerDevices() {
-
     // Parse through user config and check that the user and selected spa are valid
     if (this.config.email !== '' && this.config.password !== '' && this.config.spaName !== '') {
 
@@ -206,6 +207,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     }
   }
 
+  /**
+   * Attempts to connect to found spas and register their accessory with Homebridge
+   */
   spaConnect() {
     this.log.info('Logged in successfully, fetch data for ' + this.config.spaName + '...');
 
@@ -309,7 +313,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     existingAccessory.context.device = device;
                     this.api.updatePlatformAccessories([existingAccessory]);
     
-                    // Create accessory handler from platformAccessory.ts 
+                    // Create accessory handler from platformAccessory.ts
                     new SpaNETPlatformAccessory(this, existingAccessory);
       
                   } else {
@@ -319,7 +323,7 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     // Store copy of the device object and data in the accessory context
                     accessory.context.device = device;
       
-                    // Create handler for the accessory from platformAccessory.ts  
+                    // Create handler for the accessory from platformAccessory.ts
                     new SpaNETPlatformAccessory(this, accessory);
                     this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
                   }
@@ -350,7 +354,12 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
       });
   }
 
-  tokenExpiry(token): number {
+  /**
+   * Extract expiry time from JWT token
+   * @param {string} token - JWT token
+   * @returns {number} - Epoch timestamp when token expires
+   */
+  tokenExpiry(token: string): number {
     const payloadBase64 = token.split('.')[1];
     const decodedJson = Buffer.from(payloadBase64, 'base64').toString();
     const decoded = JSON.parse(decodedJson);
@@ -358,6 +367,10 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
     return exp;
   }
 
+  /**
+   * Generate a random UUID
+   * @returns {string} - UUID string
+   */
   uuid(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
       const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -366,6 +379,9 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
   }
 }
 
+/**
+ * SpaNET API Endpoint
+ */
 export enum Endpoint {
   information = '/Information/',
   dashboard = '/Dashboard/',
