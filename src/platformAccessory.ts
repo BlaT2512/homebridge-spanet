@@ -82,7 +82,9 @@ export class SpaNETPlatformAccessory {
         
         this.service[0].getCharacteristic(this.platform.Characteristic.RotationSpeed) // Speed of the blower
           .onGet(this.getBlowerSpeed.bind(this))
-          .onSet(value => {this.debounce(this.setBlowerSpeed.bind(this, value));})
+          .onSet(value => {
+            this.debounce(this.setBlowerSpeed.bind(this, value));
+          })
           .setProps({minValue: 0, maxValue: 100, minStep: 20});
         break;
       
@@ -277,11 +279,11 @@ export class SpaNETPlatformAccessory {
     }
   }
 
-  debounce(func: (...args: any[]) => void, timeout = 500) {
+  debounce(func: (...args: any[]) => void, timeout = 500) { // eslint-disable-line @typescript-eslint/no-explicit-any
     clearTimeout(this.debounceTimers.get(func.name));
     this.debounceTimers.set(
       func.name,
-      setTimeout(() => func.apply(this), timeout)
+      setTimeout(() => func.apply(this), timeout),
     );
   }
 
