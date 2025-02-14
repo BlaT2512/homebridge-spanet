@@ -3,6 +3,10 @@
   "name": "homebridge-spanet",
   "version": "2.1.2",
   "description": "Homebridge plugin to control Australian SpaNET spa's with the WiFi SpaLINK plugin module",
+  "funding": {
+    "type": "paypal",
+    "url": "https://paypal.me/blktourneur"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -12,8 +16,8 @@
     "url": "https://github.com/BlaT2512/homebridge-spanet/issues"
   },
   "engines": {
-    "node": "^18.17.0 || ^20.9.0",
-    "homebridge": "^1.0.0"
+    "node": "^18.17.0 || ^20.9.0 || ^22",
+    "homebridge": "^1.7.0 || ^2.0.0-beta.0"
   },
   "main": "dist/index.js",
   "scripts": {

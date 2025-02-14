@@ -3,6 +3,7 @@ import axiosRetry from 'axios-retry';
 import { API, DynamicPlatformPlugin, Logger, PlatformAccessory, PlatformConfig, Service, Characteristic } from 'homebridge';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { SpaNETPlatformAccessory } from './platformAccessory';
+import { SpaNETLightsAccessory } from './accessories/lights';
 
 /**
  * SpaNET Homebridge Platform
@@ -314,7 +315,14 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     this.api.updatePlatformAccessories([existingAccessory]);
     
                     // Create accessory handler from platformAccessory.ts
-                    new SpaNETPlatformAccessory(this, existingAccessory);
+                    switch (device.deviceClass) {
+                      case 'Lights':
+                        new SpaNETLightsAccessory(this, existingAccessory);
+                        break;
+                      default:
+                        new SpaNETPlatformAccessory(this, existingAccessory);
+                        break;
+                    }
       
                   } else {
                     // Accessory doesn't exist, create new accessory
@@ -324,7 +332,14 @@ export class SpaNETHomebridgePlatform implements DynamicPlatformPlugin {
                     accessory.context.device = device;
       
                     // Create handler for the accessory from platformAccessory.ts
-                    new SpaNETPlatformAccessory(this, accessory);
+                    switch (device.deviceClass) {
+                      case 'Lights':
+                        new SpaNETLightsAccessory(this, accessory);
+                        break;
+                      default:
+                        new SpaNETPlatformAccessory(this, accessory);
+                        break;
+                    }
                     this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
                   }
                 }

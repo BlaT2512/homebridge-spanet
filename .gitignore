@@ -118,3 +118,8 @@ dist
 .yarn/unplugged
 .yarn/build-state.yml
 .pnp.*
+
+.vscode
+package-lock.json
+.DS_Store
+*/.DS_Store

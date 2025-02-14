@@ -7,8 +7,9 @@ import { SpaNETHomebridgePlatform, Endpoint } from './platform';
  */
 export class SpaNETPlatformAccessory {
   private service: Array<Service>;
+  private debounceTimers = new Map<string, NodeJS.Timeout>();
 
-  constructor(
+  constructor (
     private readonly platform: SpaNETHomebridgePlatform,
     private readonly accessory: PlatformAccessory,
   ) {
@@ -81,23 +82,7 @@ export class SpaNETPlatformAccessory {
         
         this.service[0].getCharacteristic(this.platform.Characteristic.RotationSpeed) // Speed of the blower
           .onGet(this.getBlowerSpeed.bind(this))
-          .onSet(this.debounce(this.setBlowerSpeed.bind(this)))
-          .setProps({minValue: 0, maxValue: 100, minStep: 20});
-        break;
-      
-      case 'Lights': // Lightbulb
-        this.service = [
-          this.accessory.getService(this.platform.Service.Lightbulb) ||
-          this.accessory.addService(this.platform.Service.Lightbulb),
-        ];
-        this.service[0].setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.displayName);
-        this.service[0].getCharacteristic(this.platform.Characteristic.On) // Whether the lights are on
-          .onGet(this.getOn.bind(this))
-          .onSet(this.setOn.bind(this));
-
-        this.service[0].getCharacteristic(this.platform.Characteristic.Brightness) // Brightness of the lights
-          .onGet(this.getBrightness.bind(this))
-          .onSet(this.debounce(this.setBrightness.bind(this)))
+          .onSet(value => {this.debounce(this.setBlowerSpeed.bind(this, value));})
           .setProps({minValue: 0, maxValue: 100, minStep: 20});
         break;
       
@@ -292,12 +277,12 @@ export class SpaNETPlatformAccessory {
     }
   }
 
-  debounce(func, timeout = 500) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => func.apply(this, args), timeout);
-    };
+  debounce(func: (...args: any[]) => void, timeout = 500) {
+    clearTimeout(this.debounceTimers.get(func.name));
+    this.debounceTimers.set(
+      func.name,
+      setTimeout(() => func.apply(this), timeout)
+    );
   }
 
   /**
@@ -403,6 +388,7 @@ export class SpaNETPlatformAccessory {
             'on': value as boolean,
           })
             .then(() => {
+              this.service[0].updateCharacteristic(this.platform.Characteristic.On, value);
               this.platform.log.debug('Set Characteristic Lights On ->', value);
               resolve();
             })
@@ -705,47 +691,6 @@ export class SpaNETPlatformAccessory {
             resolve();
           })
           .catch(() => reject(new Error('Failed to set blower speed characteristic for spa device')));
-      } else {
-        resolve();
-      }
-    });
-  }
-
-  /**
-   * getBrightness - Get the brightness for the spa lights
-   * @returns {Promise<number>} - The lights brightness (0-100 %)
-   */
-  async getBrightness(): Promise<number> {
-    return new Promise<number>((resolve, reject) => {
-      this.platform.spaData(Endpoint.lights)
-        .then(response => {
-          this.platform.log.debug('Get Characteristic Lights Brightness ->', response.lightBrightness as number * 20);
-          resolve(response.lightBrightness as number * 20);
-        })
-        .catch(() => reject(new Error('Failed to get lights brightness characteristic for spa device')));
-    });
-  }
-
-  /**
-   * setBrightness - Set the brightness for the spa lights
-   * @param {number} value - The target lights brightness (0-100 %)
-   * @returns {Promise}
-   */
-  async setBrightness(value: CharacteristicValue): Promise<void> {
-    const roundedValue = Math.ceil(value as number / 20) * 20;
-    return new Promise((resolve, reject) => {
-      if (roundedValue > 0) {
-        this.platform.spanetapi.put('/Lights/SetLightBrightness/' + this.accessory.context.device.apiId, {
-          'deviceId': this.platform.spaId,
-          'brightness': roundedValue / 20,
-        })
-          .then(() => {
-            //this.service[0].updateCharacteristic(this.platform.Characteristic.On, true);
-            this.service[0].updateCharacteristic(this.platform.Characteristic.Brightness, roundedValue);
-            this.platform.log.debug('Set Characteristic Lights Brightness ->', roundedValue);
-            resolve();
-          })
-          .catch(() => reject(new Error('Failed to set lights brightness characteristic for spa device')));
       } else {
         resolve();
       }
